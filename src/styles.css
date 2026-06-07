@@ -1,0 +1,116 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@font-face {
+  font-family: "InstrumentSerif";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("https://fonts.gstatic.com/s/instrumentserif/v4/jizDREVNn1dOx-zrZ2X3pZvkTYpdz5Qg.woff2") format("woff2");
+}
+@font-face {
+  font-family: "InstrumentSerif";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("https://fonts.gstatic.com/s/instrumentserif/v4/jizBREVNn1dOx-zrZ2X3pZvkThUY0TY7ikbI.woff2") format("woff2");
+}
+
+@theme inline {
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-2xl: 28px;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-ink: var(--ink);
+  --color-cream: var(--cream);
+  --color-sage: var(--sage);
+  --color-terracotta: var(--terracotta);
+  --font-serif: "InstrumentSerif", ui-serif, Georgia, serif;
+}
+
+:root {
+  --background: oklch(0.98 0.012 85);
+  --cream: oklch(0.97 0.018 85);
+  --foreground: oklch(0.22 0.02 60);
+  --ink: oklch(0.18 0.015 60);
+  --card: oklch(0.995 0.008 85);
+  --card-foreground: oklch(0.22 0.02 60);
+  --muted: oklch(0.94 0.015 80);
+  --muted-foreground: oklch(0.5 0.018 70);
+  --primary: oklch(0.32 0.04 60);
+  --primary-foreground: oklch(0.98 0.012 85);
+  --accent: oklch(0.65 0.13 45);
+  --accent-foreground: oklch(0.98 0.012 85);
+  --sage: oklch(0.62 0.05 145);
+  --terracotta: oklch(0.62 0.13 40);
+  --border: oklch(0.88 0.015 80);
+  --ring: oklch(0.55 0.05 60);
+  --radius: 14px;
+  --shadow-soft: 0 1px 2px oklch(0.2 0.02 60 / 0.04), 0 8px 24px oklch(0.2 0.02 60 / 0.06);
+  --shadow-glass: 0 10px 40px oklch(0.2 0.02 60 / 0.08);
+  --gradient-glow: radial-gradient(ellipse at top, oklch(0.85 0.06 80 / 0.6), transparent 60%);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html, body { background: var(--background); color: var(--foreground); font-family: ui-sans-serif, system-ui, -apple-system, "Inter", sans-serif; -webkit-font-smoothing: antialiased; }
+  .font-serif { font-family: var(--font-serif); letter-spacing: -0.01em; }
+}
+
+@layer components {
+  .glass-card {
+    background: color-mix(in oklch, var(--card) 88%, transparent);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-soft);
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.3rem 0.7rem; border-radius: 999px;
+    background: color-mix(in oklch, var(--cream) 70%, white);
+    border: 1px solid var(--border);
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+  .btn-primary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    padding: 0.75rem 1.4rem; border-radius: 999px;
+    background: var(--ink); color: var(--primary-foreground);
+    font-size: 0.9rem; font-weight: 500;
+    transition: transform .2s ease, background .2s ease;
+  }
+  .btn-primary:hover { background: oklch(0.28 0.025 60); transform: translateY(-1px); }
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.6rem 1rem; border-radius: 999px;
+    border: 1px solid var(--border); background: transparent;
+    font-size: 0.85rem; color: var(--foreground);
+  }
+  .btn-ghost:hover { background: var(--cream); }
+  .nav-link {
+    font-size: 0.85rem; color: var(--muted-foreground);
+    padding: 0.4rem 0.2rem; transition: color .2s;
+  }
+  .nav-link:hover, .nav-link.active { color: var(--ink); }
+  .nav-link.active { font-weight: 500; }
+  .surface {
+    background:
+      radial-gradient(1200px 600px at 50% -10%, oklch(0.93 0.04 80 / 0.6), transparent 70%),
+      var(--background);
+  }
+}
