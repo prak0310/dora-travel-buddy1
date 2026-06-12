@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TranslateRouteImport } from './routes/translate'
 import { Route as TransitRouteImport } from './routes/transit'
 import { Route as FactCheckRouteImport } from './routes/fact-check'
+import { Route as FoodRouteImport } from './routes/food'
 import { Route as IndexRouteImport } from './routes/index'
 
 const TranslateRoute = TranslateRouteImport.update({
@@ -29,6 +30,11 @@ const FactCheckRoute = FactCheckRouteImport.update({
   path: '/fact-check',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FoodRoute = FoodRouteImport.update({
+  id: '/food',
+  path: '/food',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -38,12 +44,14 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/fact-check': typeof FactCheckRoute
+  '/food': typeof FoodRoute
   '/transit': typeof TransitRoute
   '/translate': typeof TranslateRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/fact-check': typeof FactCheckRoute
+  '/food': typeof FoodRoute
   '/transit': typeof TransitRoute
   '/translate': typeof TranslateRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/fact-check': typeof FactCheckRoute
+  '/food': typeof FoodRoute
   '/transit': typeof TransitRoute
   '/translate': typeof TranslateRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/fact-check' | '/transit' | '/translate'
+  fullPaths: '/' | '/fact-check' | '/food' | '/transit' | '/translate'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/fact-check' | '/transit' | '/translate'
-  id: '__root__' | '/' | '/fact-check' | '/transit' | '/translate'
+  to: '/' | '/fact-check' | '/food' | '/transit' | '/translate'
+  id: '__root__' | '/' | '/fact-check' | '/food' | '/transit' | '/translate'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FactCheckRoute: typeof FactCheckRoute
+  FoodRoute: typeof FoodRoute
   TransitRoute: typeof TransitRoute
   TranslateRoute: typeof TranslateRoute
 }
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FactCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/food': {
+      id: '/food'
+      path: '/food'
+      fullPath: '/food'
+      preLoaderRoute: typeof FoodRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FactCheckRoute: FactCheckRoute,
+  FoodRoute: FoodRoute,
   TransitRoute: TransitRoute,
   TranslateRoute: TranslateRoute,
 }

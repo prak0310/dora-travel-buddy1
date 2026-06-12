@@ -2,6 +2,7 @@
 @source "../src";
 @import "tw-animate-css";
 
+
 @font-face {
   font-family: "InstrumentSerif";
   font-style: normal;
@@ -113,4 +114,19 @@
       radial-gradient(1200px 600px at 50% -10%, oklch(0.93 0.04 80 / 0.6), transparent 70%),
       var(--background);
   }
+  .food-prose {
+    color: var(--foreground);
+    line-height: 1.7;
+    max-width: none;
+  }
+  .food-prose h3 { font-family: var(--font-serif); color: var(--ink); font-size: 1.35rem; font-weight: 400; margin: 1.4rem 0 0.5rem; }
+  .food-prose h4 { font-family: var(--font-serif); color: var(--ink); font-size: 1.1rem; font-weight: 400; margin: 1rem 0 0.4rem; }
+  .food-prose p { margin: 0.6rem 0; font-size: 0.9rem; }
+  .food-prose ul { list-style: disc; padding-left: 1.4rem; margin: 0.5rem 0; }
+  .food-prose li { margin: 0.3rem 0; font-size: 0.9rem; }
+  .food-prose strong { color: var(--ink); font-weight: 600; }
+  .food-prose em { color: var(--muted-foreground); font-style: italic; }
+  .food-prose a { color: var(--terracotta); text-decoration: underline; }
+  .food-prose a:hover { color: var(--accent); }
+  .food-prose hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
 }
