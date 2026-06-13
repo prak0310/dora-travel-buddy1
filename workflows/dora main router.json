@@ -1,0 +1,259 @@
+{
+  "name": "dora main router",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dora-router",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ec6bc89e-3a38-49ff-96cb-fd05732cbfd1",
+      "name": "Webhook",
+      "webhookId": "83b34d09-ce28-43ba-ace0-e40d29b5c9f5"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.category }}",
+                    "rightValue": "food",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "520d5a9e-ec7c-4c6a-bd6a-ef04b338c487"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a4d428f7-415a-4750-939e-608cc554690c",
+                    "leftValue": "={{ $json.body.category }}",
+                    "rightValue": "transport",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a6abad89-2bd5-4654-8431-0a397f1d9d54",
+                    "leftValue": "={{ $json.body.category }}",
+                    "rightValue": "activity",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d5184ca8-8215-4265-8d5c-ee0cd4c266ab",
+                    "leftValue": "={{ $json.body.category }}",
+                    "rightValue": "accommodation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "1c3162b5-4a8a-42ec-aea1-e7b0c12f9654",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/dora-transport-check",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"destination\": \"{{ $json.body.destination }}\",\n  \"query\": \"{{ $json.body.query }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        432,
+        -48
+      ],
+      "id": "ec4eff14-e611-4461-bea0-58b9b22cbead",
+      "name": "call transport flow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/dora-accommodation-check",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"destination\": \"{{ $json.body.destination }}\",\n  \"query\": \"{{ $json.body.query }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        96
+      ],
+      "id": "20a58688-2992-40b4-b214-df7c11610aad",
+      "name": "call acccommodation flow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/dora-social-check",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"destination\": \"{{ $json.body.destination }}\",\n  \"query\": \"{{ $json.body.query }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        -208
+      ],
+      "id": "bf3f0d8b-6f53-4205-84f2-a6aee4068d8c",
+      "name": "call food flow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/dora-activity-check",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"destination\": \"{{ $json.body.destination }}\",\n  \"query\": \"{{ $json.body.query }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        320
+      ],
+      "id": "be1ea6ea-9ccf-4f5a-a637-dfcdce7ab275",
+      "name": "call activity flow"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "call food flow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "call transport flow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "call acccommodation flow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "call activity flow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "db30d3b6-6a5b-4be5-b8a4-44b2e74a87cd",
+  "meta": {
+    "instanceId": "e7170ac7bead7b712622aab96ab1bad401cb903eb830a72d0e681b719d73977f"
+  },
+  "nodeGroups": [],
+  "id": "clcCAvgFZzfn4oqM",
+  "tags": []
+}

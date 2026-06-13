@@ -1,0 +1,459 @@
+{
+  "name": "Dora - Activity Check",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dora-activity-check",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -672,
+        160
+      ],
+      "id": "142195bb-2ffa-4207-ba77-478cdaea3f2b",
+      "name": "Webhook",
+      "webhookId": "f0876a99-ddc8-46cd-9ce7-e92bbdc31c0e"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"api_key\": \"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\",\n  \"query\": \"={{\n$('Webhook').first().json.body.query +\n' in ' +\n$('Webhook').first().json.body.destination +\n' best things to do activities attractions experiences viral TikTok Instagram recommendations'\n}}\",\n  \"search_depth\": \"advanced\",\n  \"max_results\": 5,\n  \"include_answer\": true,\n  \"include_raw_content\": false\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -48,
+        160
+      ],
+      "id": "84620f28-77bb-4d71-85a9-99993e2822bd",
+      "name": "Tavily Search"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6IPGmZnq6Gnt8s6vXvEdbQTL9pICJ9ksRfnj_Qys73-TA",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({  contents: [\n    {\n      parts: [\n        {\n          text:\n            \"Extract up to 4 specific restaurant, cafe or attraction names from this search result. Return ONLY a JSON array of strings. No markdown. No explanation. Data: \" +\n            (\n              ($json.results?.[0]?.title || \"\") + \" \" +\n              ($json.results?.[0]?.content || \"\") + \" \" +\n              ($json.results?.[1]?.title || \"\") + \" \" +\n              ($json.results?.[1]?.content || \"\")\n            ).replace(/\\n/g, \" \").replace(/\\r/g, \" \")\n        }\n      ]\n    }\n  ]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        160,
+        160
+      ],
+      "id": "e5d6844c-59cd-4472-9f7a-52a07d8e2c76",
+      "name": "Gemini Extract Places"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $json.candidates[0].content.parts[0].text;\n\nconst cleaned = text\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet places = [];\n\ntry {\n  places = JSON.parse(cleaned);\n} catch (error) {\n  places = [];\n}\n\nconst destination = $(\"Webhook\").first().json.body.destination;\nconst query = $(\"Webhook\").first().json.body.query;\n\nreturn places.map(place => ({\n  json: {\n    placeName: place,\n    destination: destination,\n    query: query\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        160
+      ],
+      "id": "7c211b87-011f-4a03-88e9-83b60ef57465",
+      "name": "split places"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://places.googleapis.com/v1/places:searchText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Goog-Api-Key",
+              "value": "AIzaSyBNwxcnzPuVNCad7u4jlvhQ2jjGYJvKa6s"
+            },
+            {
+              "name": "X-Goog-FieldMask",
+              "value": "places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.googleMapsUri,places.websiteUri"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "textQuery",
+              "value": "={{ $json.placeName + \" \" + $json.destination }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        544,
+        160
+      ],
+      "id": "82e11937-0389-47d5-ab88-87e986b05a17",
+      "name": "google places search"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.reka.ai/v1/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "REMOVED_REKA_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: \"reka-flash\",\n  messages: [\n    {\n      role: \"user\",\n      content:\n        \"You are Dora, a travel activity expert. \" +\n        \"Given this Google Places result for a tourist activity or attraction, provide a detailed assessment. \" +\n        \"Use googleMapsUri as the url. If googleMapsUri is unavailable, use websiteUri. \" +\n        \"Return ONLY valid JSON with this exact format: \" +\n        \"{\\\"placeName\\\":\\\"\\\",\\\"verdict\\\":\\\"Highly Recommended / Worth Trying / Mixed / Overhyped\\\",\\\"confidence\\\":0,\\\"reason\\\":\\\"\\\",\\\"rating\\\":0,\\\"reviewCount\\\":0,\\\"url\\\":\\\"\\\",\\\"priceRange\\\":\\\"Free / Budget / Mid-range / Expensive\\\",\\\"duration\\\":\\\"e.g. 1-2 hours\\\",\\\"bestTime\\\":\\\"e.g. Morning / Evening / Anytime\\\",\\\"category\\\":\\\"e.g. Nature / Cultural / Adventure / Food / Nightlife\\\",\\\"goodFor\\\":[],\\\"ageSuitability\\\":\\\"All ages / Family friendly / Adults only / 18+\\\",\\\"locationArea\\\":\\\"\\\",\\\"indoorOutdoor\\\":\\\"Indoor / Outdoor / Both\\\",\\\"bookingRequired\\\":false,\\\"accessibility\\\":\\\"Easy / Moderate / Difficult\\\",\\\"watchOut\\\":[]} \" +\n        \"Google Places data: \" +\n        JSON.stringify($json)\n    }\n  ]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        752,
+        160
+      ],
+      "id": "60bf67ef-fb57-4502-970d-712398bdaa41",
+      "name": "reka fact check"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all()\n  .map(item => {\n    if (item.json.error) return null;\n\n    const response = item.json.responses?.[0]?.message?.content;\n    if (!response) return null;\n\n    const cleaned = response\n      .replace(/```json/g, \"\")\n      .replace(/```/g, \"\")\n      .trim();\n\n    let parsed;\n    try {\n      parsed = JSON.parse(cleaned);\n    } catch (error) {\n      const match = cleaned.match(/\\{[\\s\\S]*\\}/);\n      if (match) {\n        try {\n          parsed = JSON.parse(match[0]);\n        } catch {\n          return null;\n        }\n      } else {\n        return null;\n      }\n    }\n\n    if (!parsed.placeName || parsed.placeName === \"Unknown\") return null;\n    if (!parsed.verdict) return null;\n\n    return { json: parsed };\n  })\n  .filter(item => item !== null);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        160
+      ],
+      "id": "30c2b5b7-4519-4da3-8e01-469343988f76",
+      "name": "clean reka output"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  const data = item.json;\n\n  return {\n    json: {\n      title: `🎯 ${data.placeName}`,\n      verdict: data.verdict,\n      confidence: data.confidence,\n      rating: data.rating,\n      reviewCount: data.reviewCount,\n      summary: data.reason,\n      url: data.url || null,\n      priceRange: data.priceRange || null,\n      duration: data.duration || null,\n      bestTime: data.bestTime || null,\n      category: data.category || null,\n      goodFor: data.goodFor || [],\n      ageSuitability: data.ageSuitability || null,\n      locationArea: data.locationArea || null,\n      indoorOutdoor: data.indoorOutdoor || null,\n      bookingRequired: data.bookingRequired || false,\n      accessibility: data.accessibility || null,\n      watchOut: data.watchOut || []\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        160
+      ],
+      "id": "04fd2103-8f8c-4136-b4fd-f2030b0ccc37",
+      "name": "make dora cards"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  recommendations: $input.all().map(item => item.json)\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1648,
+        160
+      ],
+      "id": "59e25176-2c9f-406c-beb8-6ff9f2402a99",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bae8c7f3-f4cb-4ede-9ab5-e2f6eeefd914",
+              "leftValue": "={{ $('check activity cache').all().filter(item => item.json.id).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -256,
+        160
+      ],
+      "id": "b81cd85c-a9f0-4ba0-99ab-70304ae757d3",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  source: \"supabase_cache\",\n  recommendations: $input.all().map(item => item.json)\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0fab5ea8-19c0-4bf3-abda-26069d963767",
+      "name": "return cached result"
+    },
+    {
+      "parameters": {
+        "url": "https://dhnjasuzvslnmjxdqthw.supabase.co/rest/v1/activity_recommendations",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "destination",
+              "value": "=eq.{{ $(\"Webhook\").first().json.body.destination }}"
+            },
+            {
+              "name": "query",
+              "value": "=eq.{{ $(\"Webhook\").first().json.body.query }}"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -464,
+        160
+      ],
+      "id": "ff818f3b-207d-4084-a140-478b3d47878c",
+      "name": "check activity cache",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dhnjasuzvslnmjxdqthw.supabase.co/rest/v1/activity_recommendations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  destination: $(\"Webhook\").first().json.body.destination,\n  query: $(\"Webhook\").first().json.body.query,\n  title: $json.title,\n  url: $json.url || null,\n  verdict: $json.verdict,\n  confidence: $json.confidence,\n  rating: $json.rating,\n  review_count: $json.reviewCount,\n  price_range: $json.priceRange || null,\n  duration: $json.duration || null,\n  best_time: $json.bestTime || null,\n  category: $json.category || null,\n  good_for: $json.goodFor || [],\n  age_suitability: $json.ageSuitability || null,\n  location_area: $json.locationArea || null,\n  indoor_outdoor: $json.indoorOutdoor || null,\n  booking_required: $json.bookingRequired || false,\n  accessibility: $json.accessibility || null,\n  summary: $json.summary,\n  watch_out: $json.watchOut || []\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1376,
+        160
+      ],
+      "id": "ea5dee8a-6553-4557-b03d-f8cfda02b397",
+      "name": "save activity reco"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "check activity cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily Search": {
+      "main": [
+        [
+          {
+            "node": "Gemini Extract Places",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Extract Places": {
+      "main": [
+        [
+          {
+            "node": "split places",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "split places": {
+      "main": [
+        [
+          {
+            "node": "google places search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google places search": {
+      "main": [
+        [
+          {
+            "node": "reka fact check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reka fact check": {
+      "main": [
+        [
+          {
+            "node": "clean reka output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "clean reka output": {
+      "main": [
+        [
+          {
+            "node": "make dora cards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "make dora cards": {
+      "main": [
+        [
+          {
+            "node": "save activity reco",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "return cached result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tavily Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check activity cache": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save activity reco": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "57273e3f-4ee7-4dd1-b9e6-1065f02fbeac",
+  "meta": {
+    "instanceId": "e7170ac7bead7b712622aab96ab1bad401cb903eb830a72d0e681b719d73977f"
+  },
+  "nodeGroups": [],
+  "id": "LERfMPrMBWV3dXi7",
+  "tags": []
+}
