@@ -38,25 +38,7 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=AQ.Ab8RN6IPGmZnq6Gnt8s6vXvEdbQTL9pICJ9ksRfnj_Qys73-TA",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({  contents: [\n    {\n      parts: [\n        {\n          text:\n            \"Extract up to 4 specific restaurant, cafe or attraction names from this search result. Return ONLY a JSON array of strings. No markdown. No explanation. Data: \" +\n            (\n              ($json.results?.[0]?.title || \"\") + \" \" +\n              ($json.results?.[0]?.content || \"\") + \" \" +\n              ($json.results?.[1]?.title || \"\") + \" \" +\n              ($json.results?.[1]?.content || \"\")\n            ).replace(/\\n/g, \" \").replace(/\\r/g, \" \")\n        }\n      ]\n    }\n  ]\n}) }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
-      "position": [
-        -80,
-        -64
-      ],
-      "id": "a4634965-f0a2-42d2-b1b8-dbdcd79b44c6",
-      "name": "Gemini Extract Places"
-    },
-    {
-      "parameters": {
-        "jsCode": "const text = $json.candidates[0].content.parts[0].text;\n\nconst cleaned = text\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet places = [];\n\ntry {\n  places = JSON.parse(cleaned);\n} catch (error) {\n  places = [];\n}\n\nconst destination = $(\"Webhook\").first().json.body.destination;\nconst query = $(\"Webhook\").first().json.body.query;\n\nreturn places.map(place => ({\n  json: {\n    placeName: place,\n    destination: destination,\n    query: query\n  }\n}));"
+        "jsCode": "const text = $json.responses[0].message.content;\n\nconst cleaned = text\n  .replace(/```json/g, \"\")\n  .replace(/```/g, \"\")\n  .trim();\n\nlet places = [];\n\ntry {\n  places = JSON.parse(cleaned);\n} catch (error) {\n  places = [];\n}\n\nconst destination = $(\"Webhook\").first().json.body.destination;\nconst query = $(\"Webhook\").first().json.body.query;\n\nreturn places.map(place => ({\n  json: {\n    placeName: place,\n    destination: destination,\n    query: query\n  }\n}));"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -311,6 +293,37 @@
       ],
       "id": "e56c8a6e-878a-4567-88a0-327eee1e2fd8",
       "name": "save transport reco"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.reka.ai/v1/chat\n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "REMOVED_REKA_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: \"reka-flash\",\n  messages: [\n    {\n      role: \"user\",\n      content:\n        \"Extract up to 4 specific transport hubs, train stations, subway stations, bus terminals, transit routes or transport-related locations from this search result. Return ONLY a JSON array of strings. No markdown. No explanation. Data: \" +\n        (\n          ($json.results?.[0]?.title || \"\") + \" \" +\n          ($json.results?.[0]?.content || \"\") + \" \" +\n          ($json.results?.[1]?.title || \"\") + \" \" +\n          ($json.results?.[1]?.content || \"\")\n        ).replace(/\\n/g, \" \").replace(/\\r/g, \" \")\n    }\n  ]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -80,
+        -64
+      ],
+      "id": "a4634965-f0a2-42d2-b1b8-dbdcd79b44c6",
+      "name": "Reka Extract Places"
     }
   ],
   "pinData": {},
@@ -330,18 +343,7 @@
       "main": [
         [
           {
-            "node": "Gemini Extract Places",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Gemini Extract Places": {
-      "main": [
-        [
-          {
-            "node": "split places",
+            "node": "Reka Extract Places",
             "type": "main",
             "index": 0
           }
@@ -442,6 +444,17 @@
           }
         ]
       ]
+    },
+    "Reka Extract Places": {
+      "main": [
+        [
+          {
+            "node": "split places",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -449,7 +462,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "325ab935-33bf-41b8-873c-6104a7e3d833",
+  "versionId": "0bf1c234-7c74-4987-ba27-7f87bfafaa50",
   "meta": {
     "instanceId": "e7170ac7bead7b712622aab96ab1bad401cb903eb830a72d0e681b719d73977f"
   },
