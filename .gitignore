@@ -3,3 +3,7 @@ node_modules
 .env
 .env.local
 
+# Ignore Google Cloud Service Account private keys
+*.json
+!package.json
+!components.json
