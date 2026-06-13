@@ -4,6 +4,7 @@ import re
 import io
 import base64
 import asyncio
+import traceback
 import uvicorn
 import httpx
 from typing import List, Optional
@@ -11,6 +12,8 @@ from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
+from dotenv import load_dotenv
+
 
 '''Testing payloads:
 1. Explore Tab (Text Search):
@@ -58,8 +61,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Load environment variables from .env
+load_dotenv()
+
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 REKA_API_KEY = os.getenv("REKA_API_KEY")
+
+print("REKA loaded:", bool(REKA_API_KEY))
+print("Google loaded:", bool(GOOGLE_PLACES_API_KEY))
+
+if not REKA_API_KEY:
+    raise ValueError(
+        "REKA_API_KEY not found. Check that your .env exists and contains REKA_API_KEY."
+    )
 
 reka_client = AsyncOpenAI(
     base_url="https://api.reka.ai/v1",
@@ -144,9 +158,13 @@ async def call_reka_api(prompt: str) -> str:
         raw_text = completion.choices[0].message.content
         print("REKA RETURNED")
         return raw_text
-
+    
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Reka API error: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 async def fetch_nearby_restaurants(lat: float, lng: float, radius: int, query: Optional[str] = None) -> List[dict]:
     if not GOOGLE_PLACES_API_KEY:
@@ -328,4 +346,4 @@ async def process_camera_upload(
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run("dora_food_guide:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("dora_foodGuide_backend:app", host="0.0.0.0", port=8000, reload=True)
