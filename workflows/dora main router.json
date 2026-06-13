@@ -146,24 +146,6 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:5678/webhook/dora-accommodation-check",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"destination\": \"{{ $json.body.destination }}\",\n  \"query\": \"{{ $json.body.query }}\"\n}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
-      "position": [
-        416,
-        96
-      ],
-      "id": "20a58688-2992-40b4-b214-df7c11610aad",
-      "name": "call acccommodation flow"
-    },
-    {
-      "parameters": {
-        "method": "POST",
         "url": "http://localhost:5678/webhook/dora-social-check",
         "sendBody": true,
         "specifyBody": "json",
@@ -182,7 +164,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://localhost:5678/webhook/dora-activity-check",
+        "url": "http://localhost:5678/webhook/dora-accommodation-check",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"destination\": \"{{ $json.body.destination }}\",\n  \"query\": \"{{ $json.body.query }}\"\n}",
@@ -195,6 +177,24 @@
         320
       ],
       "id": "be1ea6ea-9ccf-4f5a-a637-dfcdce7ab275",
+      "name": "call accommodation flow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/dora-activity-check",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"destination\": \"{{ $json.body.destination }}\",\n  \"query\": \"{{ $json.body.query }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        128
+      ],
+      "id": "20a58688-2992-40b4-b214-df7c11610aad",
       "name": "call activity flow"
     }
   ],
@@ -229,14 +229,14 @@
         ],
         [
           {
-            "node": "call acccommodation flow",
+            "node": "call activity flow",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "call activity flow",
+            "node": "call accommodation flow",
             "type": "main",
             "index": 0
           }
@@ -244,12 +244,12 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "db30d3b6-6a5b-4be5-b8a4-44b2e74a87cd",
+  "versionId": "4ba6c10f-6342-4732-b162-7b0d1ea68155",
   "meta": {
     "instanceId": "e7170ac7bead7b712622aab96ab1bad401cb903eb830a72d0e681b719d73977f"
   },
