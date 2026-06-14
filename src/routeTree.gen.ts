@@ -11,8 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TranslateRouteImport } from './routes/translate'
 import { Route as TransitRouteImport } from './routes/transit'
-import { Route as FactCheckRouteImport } from './routes/fact-check'
 import { Route as FoodRouteImport } from './routes/food'
+import { Route as FactCheckRouteImport } from './routes/fact-check'
+import { Route as CulturalRouteImport } from './routes/cultural'
 import { Route as IndexRouteImport } from './routes/index'
 
 const TranslateRoute = TranslateRouteImport.update({
@@ -25,14 +26,19 @@ const TransitRoute = TransitRouteImport.update({
   path: '/transit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FoodRoute = FoodRouteImport.update({
+  id: '/food',
+  path: '/food',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FactCheckRoute = FactCheckRouteImport.update({
   id: '/fact-check',
   path: '/fact-check',
   getParentRoute: () => rootRouteImport,
 } as any)
-const FoodRoute = FoodRouteImport.update({
-  id: '/food',
-  path: '/food',
+const CulturalRoute = CulturalRouteImport.update({
+  id: '/cultural',
+  path: '/cultural',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,6 +49,7 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/cultural': typeof CulturalRoute
   '/fact-check': typeof FactCheckRoute
   '/food': typeof FoodRoute
   '/transit': typeof TransitRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/cultural': typeof CulturalRoute
   '/fact-check': typeof FactCheckRoute
   '/food': typeof FoodRoute
   '/transit': typeof TransitRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/cultural': typeof CulturalRoute
   '/fact-check': typeof FactCheckRoute
   '/food': typeof FoodRoute
   '/transit': typeof TransitRoute
@@ -65,14 +74,28 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/fact-check' | '/food' | '/transit' | '/translate'
+  fullPaths:
+    | '/'
+    | '/cultural'
+    | '/fact-check'
+    | '/food'
+    | '/transit'
+    | '/translate'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/fact-check' | '/food' | '/transit' | '/translate'
-  id: '__root__' | '/' | '/fact-check' | '/food' | '/transit' | '/translate'
+  to: '/' | '/cultural' | '/fact-check' | '/food' | '/transit' | '/translate'
+  id:
+    | '__root__'
+    | '/'
+    | '/cultural'
+    | '/fact-check'
+    | '/food'
+    | '/transit'
+    | '/translate'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CulturalRoute: typeof CulturalRoute
   FactCheckRoute: typeof FactCheckRoute
   FoodRoute: typeof FoodRoute
   TransitRoute: typeof TransitRoute
@@ -95,6 +118,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TransitRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/food': {
+      id: '/food'
+      path: '/food'
+      fullPath: '/food'
+      preLoaderRoute: typeof FoodRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/fact-check': {
       id: '/fact-check'
       path: '/fact-check'
@@ -102,11 +132,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FactCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/food': {
-      id: '/food'
-      path: '/food'
-      fullPath: '/food'
-      preLoaderRoute: typeof FoodRouteImport
+    '/cultural': {
+      id: '/cultural'
+      path: '/cultural'
+      fullPath: '/cultural'
+      preLoaderRoute: typeof CulturalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -121,6 +151,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CulturalRoute: CulturalRoute,
   FactCheckRoute: FactCheckRoute,
   FoodRoute: FoodRoute,
   TransitRoute: TransitRoute,
