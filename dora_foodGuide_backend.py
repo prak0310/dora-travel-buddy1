@@ -17,7 +17,6 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
-from fastapi.middleware.cors import CORSMiddleware
 
 '''Testing payloads:
 1. Explore Tab (Text Search):
@@ -65,6 +64,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Load environment variables from .env
 load_dotenv()
