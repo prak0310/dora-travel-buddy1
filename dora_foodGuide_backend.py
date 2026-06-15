@@ -56,15 +56,13 @@ app = FastAPI(
     version="3.0.0"
 )
 
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # Load environment variables from .env
 load_dotenv()
@@ -210,6 +208,8 @@ async def call_reka_api(prompt: str) -> str:
             status_code=500,
             detail=str(e)
         )
+    
+    
 
 async def fetch_nearby_restaurants(lat: float, lng: float, radius: int, query: Optional[str] = None) -> List[dict]:
     if not GOOGLE_PLACES_API_KEY:

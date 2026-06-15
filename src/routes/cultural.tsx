@@ -61,22 +61,22 @@ function CulturalContent() {
     try {
       const base64 = await convertToBase64(file);
 
-      const res = await fetch(
-        "http://localhost:8000/api/v1/analyze-scene",
-        {
-          method: "POST",
-          headers: {
+      
+      const res = await fetch("http://127.0.0.1:8000/api/v1/analyze-scene", {
+        method: "POST",
+        headers: {
             "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            image_base64: base64,
-            location: "Singapore",
-          }),
+        },
+        body: JSON.stringify({
+        image_base64: base64,
+        location: "Singapore",
+        }),
         }
-      );
+    );
 
       if (!res.ok) {
-        throw new Error(`API Error: ${res.statusText}`);
+        const text = await res.text();
+        throw new Error(`API Error ${res.status}: ${text}`);
       }
 
       const data = await res.json();
