@@ -8,6 +8,7 @@ const nav = [
   { to: "/fact-check", label: "Fact-Check" },
   { to: "/transit", label: "Transit" },
   { to: "/food", label: "Food" },
+  { to: "/cultural", label: "Cultural Guide" },
 ];
 
 export function AppShell({ children, active }: { children: ReactNode; active?: string }) {
