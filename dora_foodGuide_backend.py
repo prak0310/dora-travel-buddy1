@@ -393,6 +393,9 @@ async def search_vision_images(query: str) -> dict:
 
 @app.post("/api/v1/analyze-scene", response_model=SceneResponse)
 async def process_scene(req: SceneRequest):
+    print("IMAGE START:")
+    print(req.image_base64[:200])
+    print("IMAGE END")
     """Analyzes an inline base64 image using Reka Chat (reka-flash)."""
     try:
         reka_data = await analyze_scene_with_reka(req.image_base64, req.location)

@@ -82,7 +82,8 @@ function CulturalContent() {
       const data = await res.json();
       setResult(data);
     } catch (err: any) {
-      setError(err.message);
+      console.error("FULL ERROR:", err);
+      setError(String(err));
     } finally {
       setLoading(false);
     }
