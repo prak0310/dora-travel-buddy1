@@ -4,8 +4,10 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useNavigate,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { UserProvider, useUser } from "@/lib/UserContext";
 
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -75,15 +77,36 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+/** Redirects to /login when no username is stored (except on the login page itself). */
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { username } = useUser();
+  const navigate = useNavigate();
+  const pathname = useRouter().state.location.pathname;
 
+  useEffect(() => {
+    if (!username && pathname !== "/login") {
+      navigate({ to: "/login" });
+    }
+  }, [username, pathname, navigate]);
+
+  // Render nothing while redirecting to prevent flash
+  if (!username && pathname !== "/login") return null;
+
+  return <>{children}</>;
+}
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
-    </QueryClientProvider>
+    <UserProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthGate>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+        </AuthGate>
+      </QueryClientProvider>
+    </UserProvider>
   );
 }
+

@@ -1,22 +1,28 @@
-
+# --- Standard Library ---
 import os
-import json
-import re
 import io
+import re
+import json
 import base64
 import asyncio
+import tempfile
 import traceback
+from contextlib import asynccontextmanager
+from typing import List, Optional
+
+# --- Third-Party Frameworks & Utilities ---
 import uvicorn
 import httpx
-import tempfile
-import whisper
-from typing import List, Optional
+from dotenv import load_dotenv
 from pydantic import BaseModel
-from gtts import gTTS
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+
+# --- AI & Media Processing ---
+import whisper
 from openai import AsyncOpenAI
-from dotenv import load_dotenv
+from gtts import gTTS
+from google.cloud import vision
 
 '''Testing payloads:
 1. Explore Tab (Text Search):
@@ -50,21 +56,7 @@ Async: program initiates a request and continues executing other tasks while wai
 ==========================================
 '''
 
-app = FastAPI(
-    title="Dora Food & Menu Intelligence Agent",
-    description="Unified endpoint for image-based menu translation, storefront exploration, and nearby discovery.",
-    version="3.0.0"
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Load environment variables from .env
+# Load env variables FIRST before initializing clients
 load_dotenv()
 
 GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
@@ -78,37 +70,60 @@ if not REKA_API_KEY:
         "REKA_API_KEY not found. Check that your .env exists and contains REKA_API_KEY."
     )
 
+GOOGLE_KEY_FILE_PATH = "/Users/vlsurya/Desktop/summerbuild/project-9488ae86-552a-416e-a85-06c497305993.json"
+
+# ==========================================
+# APP and CORS and LIFESPAN
+# ==========================================
+
+whisper_model = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global whisper_model
+    print("Loading Whisper...")
+    whisper_model = whisper.load_model("base")
+    print("Whisper model loaded")
+    yield # This tells FastAPI to start accepting requests now
+    print("Shutting down...")
+
+app = FastAPI(
+    title="Dora Food & Menu Intelligence Agent",
+    description="Unified endpoint for image-based menu translation, storefront exploration, and nearby discovery.",
+    version="3.0.0",
+    lifespan=lifespan
+)
+
+# This tells the browser: "Yes, the frontend is allowed to talk to me!"
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # For production, you'd put your exact frontend URL here
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ==========================================
+# CLIENTS
+# ==========================================
+# Client 1: Reka Chat API (OpenAI-compatible) — for reka-flash text/multimodal chat
 reka_client = AsyncOpenAI(
     base_url="https://api.reka.ai/v1",
     api_key=REKA_API_KEY
 )
 
-whisper_model = None
-
-
-@app.on_event("startup")
-async def load_model():
-    global whisper_model
-
-    print("Loading Whisper...")
-    whisper_model = whisper.load_model("base")
-    print("Whisper model loaded")
-
-
-
+# Client 2: Reka Vision API — for managed video/image upload, search, and Q&A
+# Uses X-Api-Key header auth, NOT the OpenAI SDK
 REKA_VISION_BASE_URL = "https://vision-agent.api.reka.ai"
-
 reka_vision_headers = {
     "X-Api-Key": REKA_API_KEY,
     "Content-Type": "application/json"
 }
 
-
-
 # ==========================================
 # 2. Pydantic Schemas
 # ==========================================
-
 class SceneRequest(BaseModel):
     image_base64: str
     location: str
@@ -125,10 +140,10 @@ class VoiceChatResponse(BaseModel):
     dora_text_response: str
     dora_audio_base64: str
 
-
 class ExploreRequest(BaseModel):
-    latitude: float
-    longitude: float
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    address: Optional[str] = None # NEW: User can just type "Orchard Road" or postal code
     dietary_restrictions: List[str]
     budget: str
     cravings: Optional[str] = None
@@ -138,6 +153,7 @@ class FoodAgentResponse(BaseModel):
     mode: str  # "menu_translation", "storefront_analysis", or "nearby_explore"
     primary_headline: str
     structured_recommendations: str  # Markdown text containing context, translation, and custom recommendations
+
 
 # ==========================================
 # 3. Prompt Engineering & External APIs
@@ -209,8 +225,6 @@ async def call_reka_api(prompt: str) -> str:
             detail=str(e)
         )
     
-    
-
 async def fetch_nearby_restaurants(lat: float, lng: float, radius: int, query: Optional[str] = None) -> List[dict]:
     if not GOOGLE_PLACES_API_KEY:
         print("Warning: GOOGLE_PLACES_API_KEY missing.")
@@ -242,6 +256,24 @@ async def fetch_nearby_restaurants(lat: float, lng: float, radius: int, query: O
             })
         return places
 
+async def geocode_address(address: str) -> tuple[float, float]:
+    """Converts a text address or postal code into Latitude and Longitude."""
+    if not GOOGLE_PLACES_API_KEY:
+        raise HTTPException(status_code=500, detail="Google API Key missing.")
+    
+    url = "https://maps.googleapis.com/maps/api/geocode/json"
+    params = {"address": address, "key": GOOGLE_PLACES_API_KEY}
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, params=params)
+        data = response.json()
+        
+        if data.get("status") == "OK" and data.get("results"):
+            loc = data["results"][0]["geometry"]["location"]
+            return loc["lat"], loc["lng"]
+        else:
+            raise HTTPException(status_code=400, detail=f"Google Geocoding Failed: {data.get('status')}")
+
 def generate_free_audio(text: str, lang_code: str = 'en') -> str:
     try:
         tts = gTTS(text=text, lang=lang_code, slow=False)
@@ -253,9 +285,29 @@ def generate_free_audio(text: str, lang_code: str = 'en') -> str:
         print(f"TTS Error: {e}")
         return ""
 
+def get_google_landmark_sync(clean_b64: str) -> str:
+    """Agent 1: Synchronous Google Vision extraction via Service Account key file."""
+    try:
+        if not os.path.exists(GOOGLE_KEY_FILE_PATH):
+            print(f"Warning: Key file not found at {GOOGLE_KEY_FILE_PATH}. Skipping Google Vision.")
+            return "Unknown Landmark"
+
+        # Explicitly loading credentials directly from your local file
+        client = vision.ImageAnnotatorClient.from_service_account_file(GOOGLE_KEY_FILE_PATH)
+        image = vision.Image(content=base64.b64decode(clean_b64))
+        
+        response = client.landmark_detection(image=image)
+        landmarks = response.landmark_annotations
+        
+        if landmarks:
+            return landmarks[0].description
+        return "Unknown Landmark"
+    except Exception as e:
+        print(f"Google Vision internal exception: {str(e)}")
+        return "Unknown Landmark"
 
 async def analyze_scene_with_reka(image_input: str, location: str) -> dict:
-    """Agentic Workflow: Reka (Visual Extraction) -> Reka (Historical Context)"""
+    """The Multi-Agent Orchestrator: Google (Identity) + Reka (OCR/Context) -> Reka (Brain)"""
     
     # 1. Image Processing
     if os.path.exists(image_input):
@@ -268,8 +320,10 @@ async def analyze_scene_with_reka(image_input: str, location: str) -> dict:
     if not image_b64.startswith("data:image"):
         image_b64 = f"data:image/jpeg;base64,{image_b64}"
 
+    clean_b64 = image_b64.split(",")[1] if "," in image_b64 else image_b64
+
     # ==========================================
-    # STEP 1: THE "EYES" (Visual & OCR Extraction)
+    # STEP 1: PARALLEL EXTRACTION (Google + Reka)
     # ==========================================
     extraction_prompt = f"""
     You are an expert visual extractor. The user is in {location}. Look at this image:
@@ -278,7 +332,11 @@ async def analyze_scene_with_reka(image_input: str, location: str) -> dict:
     Do not guess the historical context yet, just tell me exactly what is physically there and what the text says.
     """
 
-    vision_response = await reka_client.chat.completions.create(
+    # Wrap the synchronous Google call in an executor so it runs concurrently with Reka
+    loop = asyncio.get_event_loop()
+    google_task = loop.run_in_executor(None, get_google_landmark_sync, clean_b64)
+    
+    reka_vision_task = reka_client.chat.completions.create(
         model="reka-flash",
         messages=[
             {
@@ -291,25 +349,28 @@ async def analyze_scene_with_reka(image_input: str, location: str) -> dict:
         ]
     )
     
+    landmark_name, vision_response = await asyncio.gather(google_task, reka_vision_task)
     visual_evidence = vision_response.choices[0].message.content
-    print(f"\n--- STEP 1: VISUAL EVIDENCE GATHERED ---\n{visual_evidence}\n---------------------------------------\n")
+    
+    print(f"\n--- AGENT 1 (GOOGLE DETECTED): {landmark_name} ---")
+    print(f"--- AGENT 2 (REKA OCR EVIDENCE):\n{visual_evidence}\n---------------------------------------\n")
 
     # ==========================================
     # STEP 2: THE "BRAIN" (Factual Grounding)
     # ==========================================
     research_prompt = f"""
     You are an expert local historian, cultural guide, and translator. 
-    A user traveling in {location} is looking at a scene with the following exact visual evidence and text transcriptions:
+    A user traveling in {location} is looking at a scene.
+    Google Vision has factually identified this exact location as: "{landmark_name}".
+    The user's camera shows this exact text and imagery: "{visual_evidence}".
     
-    "{visual_evidence}"
-    
-    Using this evidence, identify the exact specific historical monument, location, or sign they are looking at. 
+    Using the verified location name and visual evidence, provide a highly accurate cultural guide. 
     
     Return your response strictly as a FLAT JSON object. The values MUST be simple text strings. DO NOT use nested objects or arrays. Use these exact keys:
-    - "translation_and_context": State the EXACT name of the monument/place. Translate the text found in the evidence, and explain the history and cultural significance.
-    - "customs_and_etiquette": Local customs, behavioral expectations, and strict taboos relevant to this SPECIFIC place.
-    - "slang_phrase": ONE short, highly relevant local slang phrase or greeting to use here (in the local language).
-    - "slang_explanation": What that slang phrase means in English.
+    - "translation_and_context": State the EXACT name of the monument/place. Explain the history and cultural significance of {landmark_name}. Translate any text found in the visual evidence.
+    - "customs_and_etiquette": Local customs, behavioral expectations, and strict taboos relevant to this SPECIFIC place (e.g., if it's a solemn memorial, mention silence and dress codes). Be highly sensitive to the tone of the location.
+    - "slang_phrase": ONE short, respectful, and highly relevant local phrase or greeting to use here (in the local language). Provide the phonetic respelling in English for tourists to read alongside the audio.
+    - "slang_explanation": What that phrase means in English.
     
     Descriptions must be direct, concise and readable on-the-go. 
     """
@@ -331,10 +392,8 @@ async def analyze_scene_with_reka(image_input: str, location: str) -> dict:
         clean_json_string = json_match.group(0) if json_match else raw_content
         parsed_data = json.loads(clean_json_string)
 
-        # 🚨 THE SAFETY NET: If Reka still hallucinates nested dicts, flatten them into a single readable string
         for key in ["translation_and_context", "customs_and_etiquette", "slang_phrase", "slang_explanation"]:
             if key in parsed_data and isinstance(parsed_data[key], dict):
-                # Joins the dictionary values into one clean paragraph
                 parsed_data[key] = " ".join([str(v) for v in parsed_data[key].values()])
             elif key in parsed_data and isinstance(parsed_data[key], list):
                 parsed_data[key] = " ".join([str(v) for v in parsed_data[key]])
@@ -344,48 +403,6 @@ async def analyze_scene_with_reka(image_input: str, location: str) -> dict:
     except json.JSONDecodeError:
         print(f"Failed to parse Agentic output: {raw_content}")
         raise HTTPException(status_code=500, detail="Agentic AI failed to output valid JSON.")
-
-
-async def vision_healthcheck() -> dict:
-    """Pings the Reka Vision API health endpoint."""
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(
-            f"{REKA_VISION_BASE_URL}/health",
-            headers={"X-Api-Key": REKA_API_KEY},
-            timeout=5
-        )
-        resp.raise_for_status()
-        return resp.json()
-
-
-async def upload_image_to_vision_api(image_bytes: bytes, filename: str = "upload.jpg") -> dict:
-    """
-    Uploads an image to Reka Vision API for managed indexing/search.
-    Returns the image object with its ID for use in search/Q&A.
-    """
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"{REKA_VISION_BASE_URL}/v1/images/upload",
-            headers={"X-Api-Key": REKA_API_KEY},
-            files={"file": (filename, image_bytes, "image/jpeg")},
-            timeout=30
-        )
-        resp.raise_for_status()
-        return resp.json()
-
-
-async def search_vision_images(query: str) -> dict:
-    """Semantic search over images uploaded to Reka Vision API."""
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"{REKA_VISION_BASE_URL}/v1/images/search",
-            headers=reka_vision_headers,
-            json={"query": query},
-            timeout=15
-        )
-        resp.raise_for_status()
-        return resp.json()
-
 
 # ==========================================
 # 4. Unified Core Agent Flow (API Routes)
@@ -408,49 +425,9 @@ async def process_scene(req: SceneRequest):
             slang_audio_base64=audio_b64
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/v1/vision/upload")
-async def upload_to_vision(image_file: UploadFile = File(...)):
-    """
-    Uploads an image to Reka Vision API for managed storage/indexing.
-    Use this when you want the image available for semantic search later.
-    """
-    try:
-        image_bytes = await image_file.read()
-        result = await upload_image_to_vision_api(image_bytes, filename=image_file.filename)
-        return {"status": "uploaded", "vision_image": result}
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/v1/vision/search")
-async def search_vision(query: str, location: str = ""):
-    """Semantic image search over uploaded Vision API images."""
-    try:
-        search_query = f"{query} {location}".strip()
-        results = await search_vision_images(search_query)
-        return results
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=e.response.text)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/v1/vision/health")
-async def check_vision_health():
-    """Check if Reka Vision API is reachable."""
-    try:
-        result = await vision_healthcheck()
-        return {"status": "ok", "vision_api": result}
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Vision API unreachable: {str(e)}")
-
-
-    
+        # If an unhandled exception bubbles up, it logs out the full text for testing
+        print(f"ROUTE CRASHED. Stack trace detail: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Server Exception: {str(type(e).__name__)} - {str(e)}")
 
 
 @app.post(
@@ -546,14 +523,20 @@ async def process_voice_chat(
             os.remove(temp_path)
 
 
-
 @app.post("/api/v1/explore", response_model=FoodAgentResponse)
 async def explore_nearby(req: ExploreRequest):
     """Tab 1: Traditional nearby search & discovery (No image upload)."""
     try:
+        lat, lng = req.latitude, req.longitude
+        if lat is None or lng is None or (lat == 0 and lng == 0):
+            if req.address:
+                lat, lng = await geocode_address(req.address)
+            else:
+                raise HTTPException(status_code=400, detail="Must provide either coordinates or an address.")
+            
         raw_places = await fetch_nearby_restaurants(
-            lat=req.latitude,
-            lng=req.longitude,
+            lat=lat,
+            lng=lng,
             radius=req.radius_meters,
             query=req.cravings
         )
@@ -581,10 +564,23 @@ async def process_camera_upload(
 ):
     """Tab 2: Camera intelligence pipeline. Automatically classifies if image is a menu/dish or storefront."""
     try:
-        # 1. Parse preferences JSON string
-        prefs_dict = json.loads(preferences)
+        # 1. Parse preferences JSON string safely
+        try:
+            prefs_dict = json.loads(preferences)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON in 'preferences' form field.")
+
         lat = prefs_dict.get("latitude")
         lng = prefs_dict.get("longitude")
+        address = prefs_dict.get("address")
+        
+        # Determine coordinates
+        if lat is None or lng is None or (lat == 0 and lng == 0):
+            if address:
+                lat, lng = await geocode_address(address)
+            else:
+                raise HTTPException(status_code=400, detail="Must provide either coordinates or an address.")
+            
         dietary = prefs_dict.get("dietary_restrictions", [])
         budget = prefs_dict.get("budget", "Flexible")
 
@@ -693,5 +689,4 @@ async def process_camera_upload(
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run("dora_foodGuide_backend:app", host="0.0.0.0", port=8000, reload=True)
-
+    uvicorn.run("dora_foodCultural_backend:app", host="0.0.0.0", port=8000, reload=True)

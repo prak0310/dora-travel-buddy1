@@ -1,0 +1,10 @@
+asyncio
+fastapi
+gTTS
+google-cloud-vision
+httpx
+openai
+pydantic
+python-dotenv
+openai-whisper
+uvicorn

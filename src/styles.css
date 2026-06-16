@@ -130,3 +130,11 @@
   .food-prose a:hover { color: var(--accent); }
   .food-prose hr { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
 }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}

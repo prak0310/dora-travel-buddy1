@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { ScanLine, Route as RouteIcon, ShieldCheck, Search, ArrowRight, Sparkles } from "lucide-react";
+import { useUser } from "@/lib/UserContext";
 import gion from "@/assets/gion.jpg";
 
 export const Route = createFileRoute("/")({
@@ -22,12 +23,14 @@ const features = [
 ];
 
 function Home() {
+  const { username } = useUser();
+
   return (
     <AppShell>
       <section className="max-w-6xl mx-auto px-6 pt-20 pb-12 text-center">
         <span className="pill"><Sparkles className="size-3" /> Travel light. Wander braver.</span>
         <h1 className="font-serif text-6xl md:text-7xl text-ink mt-6 leading-[1.05]">
-          Where to next, <em className="italic">Lakshmi?</em>
+          Where to next, <em className="italic">{username || "Traveller"}?</em>
         </h1>
         <p className="mt-5 text-muted-foreground max-w-xl mx-auto">
           One quiet companion for the messy parts of travel — menus, trains, customs, and the gut feeling that you might be missing something.

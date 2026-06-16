@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { useState, useRef, lazy, Suspense, memo } from "react";
-import { Loader2, MapPin, Search, Camera, UploadCloud } from "lucide-react";
+import { Loader2, MapPin, Search, Camera, UploadCloud, Download } from "lucide-react";
+import html2pdf from "html2pdf.js";
 
 // Lazy-load the heavy react-markdown bundle (pulls in remark + micromark)
 // so it never blocks the main thread during page interaction.
@@ -39,10 +40,12 @@ const FoodContent = memo(function FoodContent() {
   const budgetRef = useRef<HTMLInputElement>(null);
   const latRef = useRef<HTMLInputElement>(null);
   const lngRef = useRef<HTMLInputElement>(null);
+  const addressRef = useRef<HTMLInputElement>(null);
   const cravingsRef = useRef<HTMLInputElement>(null);
   
   // Tab 2 Specific
   const [file, setFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // UI State
@@ -70,9 +73,10 @@ const FoodContent = memo(function FoodContent() {
     e.preventDefault();
     const lat = latRef.current?.value;
     const lng = lngRef.current?.value;
+    const address = addressRef.current?.value;
 
-    if (!lat || !lng) {
-      setError("Please provide coordinates or use current location.");
+    if ((!lat || !lng) && !address) {
+      setError("Please provide coordinates, use current location, or enter an address.");
       return;
     }
     setLoading(true);
@@ -80,14 +84,15 @@ const FoodContent = memo(function FoodContent() {
     setResult(null);
 
     try {
-      const payload = {
-        latitude: parseFloat(lat),
-        longitude: parseFloat(lng),
+      const payload: Record<string, unknown> = {
+        latitude: lat ? parseFloat(lat) : 0,
+        longitude: lng ? parseFloat(lng) : 0,
         dietary_restrictions: dietaryRef.current?.value ? dietaryRef.current.value.split(",").map(d => d.trim()) : [],
         budget: budgetRef.current?.value || "Flexible",
         cravings: cravingsRef.current?.value || "local",
         radius_meters: 1500
       };
+      if (address) payload.address = address;
 
       const res = await fetch("http://localhost:8000/api/v1/explore", {
         method: "POST",
@@ -112,13 +117,14 @@ const FoodContent = memo(function FoodContent() {
     e.preventDefault();
     const lat = latRef.current?.value;
     const lng = lngRef.current?.value;
+    const address = addressRef.current?.value;
 
     if (!file) {
       setError("Please select an image file to upload.");
       return;
     }
-    if (!lat || !lng) {
-      setError("Please provide coordinates or use current location.");
+    if ((!lat || !lng) && !address) {
+      setError("Please provide coordinates, use current location, or enter an address.");
       return;
     }
     setLoading(true);
@@ -129,12 +135,13 @@ const FoodContent = memo(function FoodContent() {
       const formData = new FormData();
       formData.append("file", file);
       
-      const preferences = {
-        latitude: parseFloat(lat),
-        longitude: parseFloat(lng),
+      const preferences: Record<string, unknown> = {
+        latitude: lat ? parseFloat(lat) : 0,
+        longitude: lng ? parseFloat(lng) : 0,
         dietary_restrictions: dietaryRef.current?.value ? dietaryRef.current.value.split(",").map(d => d.trim()) : [],
         budget: budgetRef.current?.value || "Flexible"
       };
+      if (address) preferences.address = address;
       
       formData.append("preferences", JSON.stringify(preferences));
 
@@ -189,6 +196,15 @@ const FoodContent = memo(function FoodContent() {
             />
           </div>
           <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-ink mb-1">Address <span className="text-muted-foreground font-normal">(optional — alternative to coordinates)</span></label>
+            <input 
+              type="text" 
+              ref={addressRef}
+              placeholder="e.g. Orchard Road, 179103, Shibuya Station"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
+          <div className="md:col-span-2">
             <label className="block text-sm font-medium text-ink mb-1">Location</label>
             <div className="flex flex-col sm:flex-row gap-2">
               <input 
@@ -218,13 +234,13 @@ const FoodContent = memo(function FoodContent() {
       {/* Tabs */}
       <div className="flex gap-2 mb-6 border-b border-border pb-2">
         <button 
-          onClick={() => { setTab("explore"); setResult(null); setError(""); }}
+          onClick={() => { setTab("explore"); setError(""); }}
           className={`px-4 py-2 text-sm font-medium transition-colors ${tab === "explore" ? "text-ink border-b-2 border-ink" : "text-muted-foreground hover:text-ink"}`}
         >
           Explore Nearby
         </button>
         <button 
-          onClick={() => { setTab("camera"); setResult(null); setError(""); }}
+          onClick={() => { setTab("camera"); setError(""); }}
           className={`px-4 py-2 text-sm font-medium transition-colors ${tab === "camera" ? "text-ink border-b-2 border-ink" : "text-muted-foreground hover:text-ink"}`}
         >
           Camera Intel
@@ -232,7 +248,7 @@ const FoodContent = memo(function FoodContent() {
       </div>
 
       {error && (
-        <div className="p-4 mb-6 rounded-md bg-[oklch(0.9_0.05_30)] text-[oklch(0.4_0.15_30)] text-sm border border-[oklch(0.8_0.05_30)]">
+        <div className="p-4 mb-6 rounded-md text-sm" style={{ background: '#fde8e8', color: '#9b2c2c', border: '1px solid #f5c6c6' }}>
           {error}
         </div>
       )}
@@ -271,7 +287,9 @@ const FoodContent = memo(function FoodContent() {
                   accept="image/*"
                   onChange={(e) => {
                     if (e.target.files && e.target.files[0]) {
-                      setFile(e.target.files[0]);
+                      const selected = e.target.files[0];
+                      setFile(selected);
+                      setImagePreviewUrl(URL.createObjectURL(selected));
                     }
                   }}
                 />
@@ -295,12 +313,49 @@ const FoodContent = memo(function FoodContent() {
       {/* Results */}
       {result && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h3 className="font-serif text-3xl text-ink mb-6">{result.primary_headline}</h3>
-          <div className="glass-card p-8">
-            <div className="food-prose">
-              <Suspense fallback={<div className="flex items-center gap-2 text-muted-foreground text-sm"><Loader2 className="size-4 animate-spin" /> Rendering results…</div>}>
-                <ReactMarkdown>{result.structured_recommendations}</ReactMarkdown>
-              </Suspense>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-serif text-3xl text-ink">{result.primary_headline}</h3>
+            <button
+              type="button"
+              onClick={() => {
+                const element = document.getElementById("pdf-content");
+                // Build a filesystem-safe filename from the headline
+                const safeName = result.primary_headline
+                  .replace(/[^a-zA-Z0-9\s-]/g, "")
+                  .trim()
+                  .replace(/\s+/g, "_")
+                  .toLowerCase()
+                  || "dora_food_guide";
+                const opt = {
+                  margin: 10,
+                  filename: `dora_${safeName}.pdf`,
+                  image: { type: "jpeg", quality: 0.98 },
+                  html2canvas: { scale: 2 },
+                  jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
+                };
+                html2pdf().set(opt).from(element).save();
+              }}
+              className="btn-ghost flex items-center gap-2 text-sm"
+            >
+              <Download className="size-4" /> Download as PDF
+            </button>
+          </div>
+          <div id="pdf-content" style={{ background: '#ffffff', color: '#2d2a26' }}>
+            {imagePreviewUrl && (
+              <div className="mb-6">
+                <img
+                  src={imagePreviewUrl}
+                  alt="Uploaded image"
+                  className="max-h-80 rounded-lg object-contain mx-auto"
+                />
+              </div>
+            )}
+            <div className="glass-card p-8" style={{ background: '#fefefe', backdropFilter: 'none' }}>
+              <div className="food-prose">
+                <Suspense fallback={<div className="flex items-center gap-2 text-muted-foreground text-sm"><Loader2 className="size-4 animate-spin" /> Rendering results…</div>}>
+                  <ReactMarkdown>{result.structured_recommendations}</ReactMarkdown>
+                </Suspense>
+              </div>
             </div>
           </div>
         </div>

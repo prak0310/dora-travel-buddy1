@@ -1,6 +1,7 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { Globe } from "lucide-react";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { Globe, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
+import { useUser } from "@/lib/UserContext";
 
 const nav = [
   { to: "/", label: "Explore" },
@@ -14,6 +15,16 @@ const nav = [
 export function AppShell({ children, active }: { children: ReactNode; active?: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const current = active ?? pathname;
+  const { username, logout } = useUser();
+  const navigate = useNavigate();
+
+  const initial = username ? username.charAt(0).toUpperCase() : "?";
+
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/login" });
+  };
+
   return (
     <div className="surface min-h-screen flex flex-col">
       <header className="sticky top-0 z-40 backdrop-blur-md bg-[color-mix(in_oklch,var(--background)_70%,transparent)] border-b border-border">
@@ -28,7 +39,16 @@ export function AppShell({ children, active }: { children: ReactNode; active?: s
           </nav>
           <div className="flex items-center gap-3">
             <button className="btn-ghost"><Globe className="size-4" /> EN</button>
-            <div className="size-9 rounded-full bg-gradient-to-br from-[oklch(0.7_0.08_50)] to-[oklch(0.55_0.1_30)] flex items-center justify-center text-white text-sm font-medium">L</div>
+            {username && (
+              <span className="text-sm text-muted-foreground hidden sm:inline">{username}</span>
+            )}
+            <div
+              className="size-9 rounded-full bg-gradient-to-br from-[#c4956a] to-[#a0522d] flex items-center justify-center text-white text-sm font-medium cursor-pointer"
+              title={username ? `Logged in as ${username} — click to log out` : ""}
+              onClick={handleLogout}
+            >
+              {initial}
+            </div>
           </div>
         </div>
       </header>
