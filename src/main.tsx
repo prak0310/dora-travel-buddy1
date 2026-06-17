@@ -13,3 +13,11 @@ if (!rootElement) {
 const router = getRouter();
 
 createRoot(rootElement).render(<RouterProvider router={router} />);
+
+const saved = localStorage.getItem("theme");
+
+if (saved === "dark") {
+  document.documentElement.classList.add("dark");
+}
+
+
