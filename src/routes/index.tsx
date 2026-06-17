@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm";
 import gion from "@/assets/gion.jpg";
 import { ScrollVideo } from "@/components/ScrollVideo";
 
+
 const ReactMarkdown = lazy(() => import("react-markdown"));
 
 /** Custom components for ReactMarkdown rendering */
@@ -280,12 +281,24 @@ function Home() {
 
         {/* Chat Interface */}
         <div
-        className={`glass-card max-w-2xl mx-auto mt-10 overflow-hidden transition-all duration-300 ${
+        className={`relative glass-card max-w-2xl mx-auto mt-10 overflow-hidden transition-all duration-300 ${
         chatOpen
         ? "border border-ink/40 shadow-xl shadow-ink/20"
         : "border border-border/50"
         }`}
         > 
+        {chatOpen && (
+  <div className="absolute top-2 right-2 animate-in fade-in zoom-in duration-300">
+    <div className="w-10 h-10 rounded-full overflow-hidden border border-border shadow-lg bg-white flex items-center justify-center">
+      <img
+        src={gion}
+        alt="Dora"
+        className="w-full h-full object-cover"
+      />
+    </div>
+  </div>
+)}
+
         {/* Messages Area */}
 {chatOpen && (
   <div
