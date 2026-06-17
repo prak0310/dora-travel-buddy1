@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { useState, useRef, lazy, Suspense } from "react";
+import { useSessionStorage } from "@/hooks/useSessionStorage";
 import { Loader2, Camera, UploadCloud, ExternalLink } from "lucide-react";
 import remarkGfm from "remark-gfm";
 
@@ -77,7 +78,7 @@ function Cultural() {
 function CulturalContent() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<SceneResponse | null>(null);
+  const [result, setResult] = useSessionStorage<SceneResponse | null>("dora-cultural-result", null);
   const [error, setError] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);

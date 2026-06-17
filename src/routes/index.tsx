@@ -3,6 +3,7 @@ import { AppShell } from "@/components/AppShell";
 import { ScanLine, Route as RouteIcon, ShieldCheck, Search, ArrowRight, Sparkles, Bot, Send, Loader2, ExternalLink, Camera, ChevronLeft, ChevronRight, Star, Mic } from "lucide-react";
 import { useUser } from "@/lib/UserContext";
 import { useState, useRef, useEffect, lazy, Suspense } from "react";
+import { useSessionStorage } from "@/hooks/useSessionStorage";
 import remarkGfm from "remark-gfm";
 import gion from "@/assets/gion.jpg";
 import { ScrollVideo } from "@/components/ScrollVideo";
@@ -180,8 +181,8 @@ function Home() {
     fetchRecs(userId);
   }, [username]);
 
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [messages, setMessages] = useSessionStorage<ChatMsg[]>("dora-chat-messages", []);
+  const [chatOpen, setChatOpen] = useSessionStorage("dora-chat-open", false);
   const [input, setInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);

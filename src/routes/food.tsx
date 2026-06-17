@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { useState, useRef, lazy, Suspense, memo } from "react";
+import { useSessionStorage } from "@/hooks/useSessionStorage";
 import { Loader2, MapPin, Search, Camera, UploadCloud, Download, ExternalLink } from "lucide-react";
 import html2pdf from "html2pdf.js";
 import remarkGfm from "remark-gfm";
@@ -91,7 +92,7 @@ const FoodContent = memo(function FoodContent() {
   
   // UI State
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AgentResponse | null>(null);
+  const [result, setResult] = useSessionStorage<AgentResponse | null>("dora-food-result", null);
   const [error, setError] = useState("");
 
   const handleUseCurrentLocation = () => {

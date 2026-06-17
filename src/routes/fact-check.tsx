@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { useState } from "react";
+import { useSessionStorage } from "@/hooks/useSessionStorage";
 import {
   Loader2,
   Search,
@@ -81,7 +82,7 @@ function FactCheck() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [source, setSource] = useState("");
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [recommendations, setRecommendations] = useSessionStorage<Recommendation[]>("dora-fact-check", []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

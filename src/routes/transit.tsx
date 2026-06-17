@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { Train, MapPin, Clock, Loader2, ArrowRight, ExternalLink } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { useSessionStorage } from "@/hooks/useSessionStorage";
 
 export const Route = createFileRoute("/transit")({
   head: () => ({
@@ -164,7 +165,7 @@ function Transit() {
   const [destination, setDestination] = useState("Marina Bay Sands");
   const [city, setCity] = useState("Singapore");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<DirectionsResult | null>(null);
+  const [result, setResult] = useSessionStorage<DirectionsResult | null>("dora-transit-result", null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSearch() {
