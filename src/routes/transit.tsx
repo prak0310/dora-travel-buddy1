@@ -3,6 +3,7 @@ import { AppShell } from "@/components/AppShell";
 import { Train, MapPin, Clock, Loader2, ArrowRight, ExternalLink } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useSessionStorage } from "@/hooks/useSessionStorage";
+import { N8N_URL } from "../config";
 
 export const Route = createFileRoute("/transit")({
   head: () => ({
@@ -26,7 +27,7 @@ type DirectionsResult = {
   };
 };
 
-const N8N_DIRECTIONS_URL = "http://localhost:5678/webhook/dora-directions";
+const N8N_DIRECTIONS_URL = `${N8N_URL}/webhook/dora-directions`;
 const MAPS_API_KEY = "REMOVED_MAPS_KEY";
 
 function loadGoogleMaps(): Promise<void> {

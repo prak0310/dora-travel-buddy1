@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import gion from "@/assets/gion.jpg";
 import { ScrollVideo } from "@/components/ScrollVideo";
 import mascot from "../../mascot.png";
+import { BACKEND_URL, N8N_URL } from "../config";
 
 
 const ReactMarkdown = lazy(() => import("react-markdown"));
@@ -41,7 +42,7 @@ const features = [
   { to: "/cultural", icon: Camera, title: "Cultural Explorer", desc: "Point your camera at anything around you — a landmark, sign, banner, or poster — and get the cultural backstory, local etiquette, useful phrases, and how to say them out loud.", cta: "Open camera" },
 ];
 
-const N8N_PERSONALISED_URL = "http://localhost:5678/webhook/dora-personalised";
+const N8N_PERSONALISED_URL = `${N8N_URL}/webhook/dora-personalised`;
 
 type Rec = {
   title?: string;
@@ -263,7 +264,7 @@ function Home() {
             formData.append('audio_file', audioBlob, 'recording.webm');
             formData.append('location', destination || 'Unknown');
 
-            const res = await fetch("http://localhost:8000/api/v1/voice-chat", {
+            const res = await fetch(`${BACKEND_URL}/api/v1/voice-chat`, {
               method: "POST",
               body: formData,
             });
@@ -325,7 +326,7 @@ function Home() {
         .slice(-6)
         .map((m) => ({ role: m.role, content: m.content }));
 
-      const res = await fetch("http://localhost:8000/api/v1/chat", {
+      const res = await fetch(`${BACKEND_URL}/api/v1/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

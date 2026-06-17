@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   AlertTriangle,
 } from "lucide-react";
+import { N8N_URL } from "../config";
 
 export const Route = createFileRoute("/fact-check")({
   head: () => ({
@@ -69,10 +70,10 @@ type Recommendation = {
 };
 
 const endpointMap: Record<Category, string> = {
-  food: "http://localhost:5678/webhook/dora-social-check",
-  transport: "http://localhost:5678/webhook/dora-transport-check",
-  activity: "http://localhost:5678/webhook/dora-activity-check",
-  accommodation: "http://localhost:5678/webhook/dora-accommodation-check",
+  food: `${N8N_URL}/webhook/dora-social-check`,
+  transport: `${N8N_URL}/webhook/dora-transport-check`,
+  activity: `${N8N_URL}/webhook/dora-activity-check`,
+  accommodation: `${N8N_URL}/webhook/dora-accommodation-check`,
 };
 
 function FactCheck() {

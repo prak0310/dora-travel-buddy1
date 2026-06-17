@@ -1,5 +1,7 @@
+import { BACKEND_URL } from "../../config";
+
 export async function updateSettings(data: any) {
-  const res = await fetch("http://localhost:8000/settings", {
+  const res = await fetch(`${BACKEND_URL}/settings`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -12,7 +14,8 @@ export async function updateSettings(data: any) {
 }
 
 export async function getSettings() {
-  const res = await fetch("http://localhost:8000/settings");
+  const res = await fetch(`${BACKEND_URL}/settings`);
+
 
   if (!res.ok) throw new Error("Failed to fetch settings");
   return res.json();

@@ -3,6 +3,7 @@ import { Bot, Send, Loader2, Mic, X, Sparkles } from "lucide-react";
 import remarkGfm from "remark-gfm";
 import { useUser } from "@/lib/UserContext";
 import mascot from "../../mascot.png";
+import { BACKEND_URL } from "../config";
 
 const ReactMarkdown = lazy(() => import("react-markdown"));
 
@@ -86,7 +87,7 @@ export function GlobalChat() {
             formData.append('audio_file', audioBlob, 'recording.webm');
             formData.append('location', 'Unknown');
 
-            const res = await fetch("http://localhost:8000/api/v1/voice-chat", {
+            const res = await fetch(`${BACKEND_URL}/api/v1/voice-chat`, {
               method: "POST",
               body: formData,
             });
@@ -147,7 +148,7 @@ export function GlobalChat() {
         .slice(-6)
         .map((m) => ({ role: m.role, content: m.content }));
 
-      const res = await fetch("http://localhost:8000/api/v1/chat", {
+      const res = await fetch(`${BACKEND_URL}/api/v1/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -5,6 +5,7 @@ import { useSessionStorage } from "@/hooks/useSessionStorage";
 import { Loader2, MapPin, Search, Camera, UploadCloud, Download, ExternalLink } from "lucide-react";
 import html2pdf from "html2pdf.js";
 import remarkGfm from "remark-gfm";
+import { BACKEND_URL } from "../config";
 
 // Lazy-load the heavy react-markdown bundle
 const ReactMarkdown = lazy(() => import("react-markdown"));
@@ -136,7 +137,7 @@ const FoodContent = memo(function FoodContent() {
       };
       if (address) payload.address = address;
 
-      const res = await fetch("http://localhost:8000/api/v1/explore", {
+      const res = await fetch(`${BACKEND_URL}/api/v1/explore`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -187,7 +188,7 @@ const FoodContent = memo(function FoodContent() {
       
       formData.append("preferences", JSON.stringify(preferences));
 
-      const res = await fetch("http://localhost:8000/api/v1/camera-intel", {
+      const res = await fetch(`${BACKEND_URL}/api/v1/camera-intel`, {
         method: "POST",
         body: formData
       });
