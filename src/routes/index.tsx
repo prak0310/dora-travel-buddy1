@@ -165,7 +165,7 @@ function Home() {
 
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -174,16 +174,16 @@ function Home() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, loading]);
+  }, [messages, chatLoading]);
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || loading) return;
+    if (!text || chatLoading) return;
 
     const userMsg: ChatMsg = { role: "user", content: text };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
-    setLoading(true);
+    setChatLoading(true);
 
     try {
       // Build history from last 6 messages for context
@@ -216,7 +216,7 @@ function Home() {
         { role: "assistant", content: `⚠️ Something went wrong: ${err.message}`, actionType: "ERROR" },
       ]);
     } finally {
-      setLoading(false);
+      setChatLoading(false);
       inputRef.current?.focus();
     }
   };
@@ -303,7 +303,7 @@ function Home() {
                   )}
                 </div>
               ))}
-              {loading && (
+              {chatLoading && (
                 <div className="flex gap-3 justify-start" style={{ animation: "fadeSlideIn 0.3s ease-out" }}>
                   <div className="size-7 rounded-full bg-cream border border-border flex-shrink-0 flex items-center justify-center mt-1">
                     <Bot className="size-3.5 text-ink" />
@@ -329,14 +329,14 @@ function Home() {
               onKeyDown={handleKeyDown}
               placeholder="Ask Dora anything — a dish, a station, a custom…"
               className="flex-1 bg-transparent outline-none py-3 px-4 text-sm"
-              disabled={loading}
+              disabled={chatLoading}
             />
             <button
               onClick={handleSend}
-              disabled={loading || !input.trim()}
+              disabled={chatLoading || !input.trim()}
               className="btn-primary disabled:opacity-40 flex items-center gap-2"
             >
-              {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              {chatLoading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               Send
             </button>
           </div>
