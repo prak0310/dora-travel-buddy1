@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  python-backend:
+    build: .
+    container_name: dora-python-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # Mount the hardcoded Google Vision key file path so the container can read it exactly as written in the code
+      - /Users/vlsurya/Desktop/summerbuild/project-9488ae86-552a-416e-a85-06c497305993.json:/Users/vlsurya/Desktop/summerbuild/project-9488ae86-552a-416e-a85-06c497305993.json
+    restart: unless-stopped
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: n8n
+    ports:
+      - "5678:5678"
+    volumes:
+      - ~/.n8n:/home/node/.n8n
+      - ./workflows:/workflows
+    restart: unless-stopped

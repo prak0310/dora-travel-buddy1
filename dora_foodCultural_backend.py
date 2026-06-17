@@ -94,7 +94,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# This tells the browser: "Yes, the frontend is allowed to talk to me!"
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # For production, you'd put your exact frontend URL here
