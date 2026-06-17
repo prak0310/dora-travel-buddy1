@@ -35,9 +35,9 @@ export const Route = createFileRoute("/")({
 });
 
 const features = [
-  { to: "/food", icon: ScanLine, title: "Food Explorer", desc: "Upload a photo of a menu or restaurant front to get personalised dish recommendations based on your budget and dietary needs. Or share your location to discover what's good nearby.", cta: "Open tool" },
-  { to: "/transit", icon: RouteIcon, title: "Transit Explorer", desc: "Tell Dora where you're headed and get a step-by-step transit guide with a map view, broken down in plain language.", cta: "View routes" },
   { to: "/fact-check", icon: ShieldCheck, title: "Fact-Check Explorer", desc: "Ask about any attraction, restaurant, or place to stay and get up-to-date, verified information pulled from the latest travel trends. Great for finding hidden gems or checking if somewhere is actually worth the hype.", cta: "Start wandering" },
+  { to: "/transit", icon: RouteIcon, title: "Transit Explorer", desc: "Tell Dora where you're headed and get a step-by-step transit guide with a map view, broken down in plain language.", cta: "View routes" },
+  { to: "/food", icon: ScanLine, title: "Food Explorer", desc: "Upload a photo of a menu or restaurant front to get personalised dish recommendations based on your budget and dietary needs. Or share your location to discover what's good nearby.", cta: "Open tool" },
   { to: "/cultural", icon: Camera, title: "Cultural Explorer", desc: "Point your camera at anything around you — a landmark, sign, banner, or poster — and get the cultural backstory, local etiquette, useful phrases, and how to say them out loud.", cta: "Open camera" },
 ];
 

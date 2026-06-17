@@ -4,11 +4,11 @@ import { ScanLine, Route as RouteIcon, ShieldCheck, Camera, ArrowRight, ChevronD
 
 const features = [
   {
-    to: "/food",
-    icon: ScanLine,
-    title: "Food Explorer",
-    desc: "Upload a photo of a menu or restaurant front to get personalised dish recommendations based on your budget and dietary needs. Or share your location to discover what's good nearby.",
-    cta: "Open tool",
+    to: "/fact-check",
+    icon: ShieldCheck,
+    title: "Fact-Check Explorer",
+    desc: "Ask about any attraction, restaurant, or place to stay and get up-to-date, verified information pulled from the latest travel trends. Great for finding hidden gems or checking if somewhere is actually worth the hype.",
+    cta: "Start wandering",
   },
   {
     to: "/transit",
@@ -18,11 +18,11 @@ const features = [
     cta: "View routes",
   },
   {
-    to: "/fact-check",
-    icon: ShieldCheck,
-    title: "Fact-Check Explorer",
-    desc: "Ask about any attraction, restaurant, or place to stay and get up-to-date, verified information pulled from the latest travel trends. Great for finding hidden gems or checking if somewhere is actually worth the hype.",
-    cta: "Start wandering",
+    to: "/food",
+    icon: ScanLine,
+    title: "Food Explorer",
+    desc: "Upload a photo of a menu or restaurant front to get personalised dish recommendations based on your budget and dietary needs. Or share your location to discover what's good nearby.",
+    cta: "Open tool",
   },
   {
     to: "/cultural",
@@ -33,10 +33,11 @@ const features = [
   },
 ];
 
+
 const featureRanges = [
   { start: 0.02, end: 0.15 },
   { start: 0.24, end: 0.38 },
-  { start: 0.56, end: 0.71 },
+  { start: 0.45, end: 0.68 },
   { start: 0.74, end: 0.90 },
 ];
 
@@ -195,8 +196,8 @@ export function ScrollVideo() {
             })}
           </div>
 
-          {/* Cards Wrapper (Responsive Position: bottom on mobile, right on desktop) */}
-          <div className="absolute left-6 right-6 bottom-16 md:bottom-auto md:left-auto md:right-12 lg:right-16 md:top-1/2 md:-translate-y-1/2 z-30 w-auto md:w-[420px] h-[340px] md:h-[300px] pointer-events-none relative">
+          {/* Cards Wrapper (Responsive Position: bottom on mobile, absolute screen positions on desktop) */}
+          <div className="absolute inset-0 z-30 pointer-events-none">
             {features.map((f, i) => {
               const range = featureRanges[i];
               const isActive = scrollProgress >= range.start && scrollProgress <= range.end;
@@ -205,55 +206,79 @@ export function ScrollVideo() {
               const rangeProgress = (scrollProgress - range.start) / (range.end - range.start);
               const clampedRangeProgress = Math.max(0, Math.min(1, rangeProgress));
 
+              // Determine specific absolute positioning on desktop for each card
+              let positionClasses = "";
+              if (i === 0) {
+                // Feature 1: move up but vertically in the middle (shifted ~10% right)
+                positionClasses = "left-6 right-6 bottom-16 md:bottom-auto md:left-[60%] md:top-[42%] md:-translate-x-1/2 md:-translate-y-1/2 md:right-auto w-auto md:w-[420px]";
+              } else if (i === 1) {
+                // Feature 2: kinda bottom right (shifted ~10% right)
+                positionClasses = "left-6 right-6 bottom-16 md:bottom-16 md:-right-16 md:top-auto md:left-auto w-auto md:w-[420px]";
+              } else if (i === 2) {
+                // Feature 3: kinda top right (shifted ~10% right)
+                positionClasses = "left-6 right-6 bottom-16 md:top-24 md:-right-16 md:bottom-auto md:left-auto w-auto md:w-[420px]";
+              } else if (i === 3) {
+                // Feature 4: kinda bottom right (shifted ~10% right)
+                positionClasses = "left-6 right-6 bottom-16 md:bottom-16 md:-right-16 md:top-auto md:left-auto w-auto md:w-[420px]";
+              }
+
               return (
                 <div
                   key={i}
-                  className={`absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:-translate-y-1/2 transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1) transform ${isActive
-                    ? "opacity-100 translate-y-0 scale-100 pointer-events-auto"
-                    : "opacity-0 translate-y-6 scale-95 pointer-events-none"
+                  className={`absolute transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] transform ${positionClasses} ${isActive
+                    ? "opacity-100 pointer-events-auto"
+                    : "opacity-0 pointer-events-none"
                     }`}
                 >
-                  <div className="glass-card p-6 md:p-8 bg-black/45 backdrop-blur-xl border border-white/15 text-white shadow-2xl flex flex-col gap-4">
-                    {/* Header */}
-                    <div className="flex items-center gap-4">
-                      <div className="size-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shadow-inner">
-                        <f.icon className="size-5 text-white" />
+                  {/* Nested container to animate translation and scale without conflicting with layout transforms */}
+                  <div
+                    className={`w-full transition-all duration-500 transform ${isActive
+                      ? "translate-y-0 scale-100"
+                      : "translate-y-6 scale-95"
+                      }`}
+                  >
+                    <div className="glass-card p-6 md:p-8 bg-black/45 backdrop-blur-xl border border-white/15 text-white shadow-2xl flex flex-col gap-4">
+                      {/* Header */}
+                      <div className="flex items-center gap-4">
+                        <div className="size-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shadow-inner">
+                          <f.icon className="size-5 text-white" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase tracking-widest text-white/40 font-semibold font-mono">
+                            Explore Feature 0{i + 1}
+                          </span>
+                          <h3 className="font-serif text-2xl md:text-3xl text-white font-medium leading-tight">
+                            {f.title}
+                          </h3>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-[10px] uppercase tracking-widest text-white/40 font-semibold font-mono">
-                          Explore Feature 0{i + 1}
-                        </span>
-                        <h3 className="font-serif text-2xl md:text-3xl text-white font-medium leading-tight">
-                          {f.title}
-                        </h3>
+
+                      {/* Divider Line */}
+                      <hr className="border-white/10 my-0.5" />
+
+                      {/* Description */}
+                      <p className="text-xs md:text-sm text-white/80 leading-relaxed font-light">
+                        {f.desc}
+                      </p>
+
+                      {/* Card Progress Indicator (Visual Delight) */}
+                      <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden mt-1">
+                        <div
+                          className="h-full bg-white transition-all duration-75"
+                          style={{ width: `${clampedRangeProgress * 100}%` }}
+                        />
                       </div>
-                    </div>
 
-                    {/* Divider Line */}
-                    <hr className="border-white/10 my-0.5" />
-
-                    {/* Description */}
-                    <p className="text-xs md:text-sm text-white/80 leading-relaxed font-light">
-                      {f.desc}
-                    </p>
-
-                    {/* Card Progress Indicator (Visual Delight) */}
-                    <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden mt-1">
-                      <div
-                        className="h-full bg-white transition-all duration-75"
-                        style={{ width: `${clampedRangeProgress * 100}%` }}
-                      />
-                    </div>
-
-                    {/* CTA Action */}
-                    <div className="mt-2 flex">
-                      <Link
-                        to={f.to}
-                        className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-white text-black font-semibold text-xs hover:bg-neutral-100 transition-all shadow-lg hover:shadow-white/10 active:scale-95"
-                      >
-                        {f.cta}
-                        <ArrowRight className="size-3.5" />
-                      </Link>
+                      {/* CTA Action */}
+                      <div className="mt-2 flex">
+                        <Link
+                          to={f.to}
+                          className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-white text-black font-semibold text-xs hover:bg-neutral-100 transition-all shadow-lg hover:shadow-white/10 active:scale-95"
+                        >
+                          {f.cta}
+                          <ArrowRight className="size-3.5" />
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
