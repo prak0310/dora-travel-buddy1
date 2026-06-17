@@ -1,7 +1,52 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { useState, useRef } from "react";
-import { Loader2, Camera, UploadCloud } from "lucide-react";
+import { useState, useRef, lazy, Suspense } from "react";
+import { Loader2, Camera, UploadCloud, ExternalLink } from "lucide-react";
+import remarkGfm from "remark-gfm";
+
+const ReactMarkdown = lazy(() => import("react-markdown"));
+
+/** Custom components for ReactMarkdown rendering */
+const markdownComponents = {
+  a: ({ href, children, ...props }: any) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+      {children}
+      <ExternalLink className="inline-block size-3 ml-0.5 align-baseline opacity-60" />
+    </a>
+  ),
+};
+
+/** Strip LLM reasoning/thinking artifacts that sometimes leak into the response */
+function cleanResponse(raw: string): string {
+  if (!raw) return "";
+  let text = raw;
+
+  // Remove <reasoning>...</reasoning> blocks (greedy, handles multi-line)
+  text = text.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, "");
+
+  // If there's an orphaned </reasoning> tag, discard everything before (and including) it
+  const idx = text.lastIndexOf("</reasoning>");
+  if (idx !== -1) {
+    text = text.substring(idx + "</reasoning>".length);
+  }
+
+  // Also strip orphaned <reasoning> opening tag if the close was already removed
+  text = text.replace(/<\/?reasoning>/gi, "");
+
+  // Remove lines that are purely URL-encoded noise (90%+ percent-encoded chars)
+  text = text
+    .split("\n")
+    .filter((line) => {
+      const pctMatches = line.match(/%[0-9A-Fa-f]{2}/g);
+      if (pctMatches && pctMatches.length > 10 && (pctMatches.length * 3) / line.length > 0.4) {
+        return false; // line is mostly URL-encoded junk
+      }
+      return true;
+    })
+    .join("\n");
+
+  return text.trim();
+}
 
 export const Route = createFileRoute("/cultural")({
   head: () => ({
@@ -161,26 +206,40 @@ function CulturalContent() {
       {/* Results */}
       {result && (
         <div className="glass-card p-6 space-y-6">
-          <div>
+          <div className="food-prose">
             <h2 className="font-semibold text-lg">Context</h2>
-            <p className="text-muted-foreground">
-              {result.translation_and_context}
-            </p>
+            <Suspense fallback={<Loader2 className="size-4 animate-spin" />}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {cleanResponse(result.translation_and_context)}
+              </ReactMarkdown>
+            </Suspense>
           </div>
 
-          <div>
+          <div className="food-prose">
             <h2 className="font-semibold text-lg">Customs & Etiquette</h2>
-            <p className="text-muted-foreground">
-              {result.customs_and_etiquette}
-            </p>
+            <Suspense fallback={<Loader2 className="size-4 animate-spin" />}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {cleanResponse(result.customs_and_etiquette)}
+              </ReactMarkdown>
+            </Suspense>
           </div>
 
-          <div>
+          <div className="food-prose">
             <h2 className="font-semibold text-lg">Local Slang</h2>
-            <p className="font-medium">{result.slang_phrase}</p>
-            <p className="text-muted-foreground">
-              {result.slang_explanation}
-            </p>
+            <Suspense fallback={<Loader2 className="size-4 animate-spin" />}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {cleanResponse(result.slang_phrase)
+                  .replace(/\s*\*\*(Translation|When to [Uu]se):\*\*\s*/g, '\n\n**$1:** ')
+                  .replace(/\s*\*([Nn]ote):\s*/g, '\n\n*$1: ')}
+              </ReactMarkdown>
+            </Suspense>
+            {result.slang_explanation && !result.slang_explanation.toLowerCase().includes("information not provided") && (
+              <Suspense fallback={<Loader2 className="size-4 animate-spin" />}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {cleanResponse(result.slang_explanation)}
+                </ReactMarkdown>
+              </Suspense>
+            )}
           </div>
 
           {/* Audio */}

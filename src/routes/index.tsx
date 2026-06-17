@@ -1,8 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { ScanLine, Route as RouteIcon, ShieldCheck, Search, ArrowRight, Sparkles } from "lucide-react";
+import { ScanLine, Route as RouteIcon, ShieldCheck, ArrowRight, Sparkles, Send, Loader2, Bot, ExternalLink, Camera } from "lucide-react";
 import { useUser } from "@/lib/UserContext";
+import { useState, useRef, useEffect, lazy, Suspense } from "react";
+import remarkGfm from "remark-gfm";
 import gion from "@/assets/gion.jpg";
+
+const ReactMarkdown = lazy(() => import("react-markdown"));
+
+/** Custom components for ReactMarkdown rendering */
+const markdownComponents = {
+  a: ({ href, children, ...props }: any) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+      {children}
+      <ExternalLink className="inline-block size-3 ml-0.5 align-baseline opacity-60" />
+    </a>
+  ),
+};
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -17,13 +31,119 @@ export const Route = createFileRoute("/")({
 });
 
 const features = [
-  { to: "/translate", icon: ScanLine, title: "Menu Analysis", desc: "Instantly translate and explain local ingredients with photography.", cta: "Open tool" },
-  { to: "/transit", icon: RouteIcon, title: "Transit Guide", desc: "Real-time navigation and local transport insights for seamless urban journeys.", cta: "View routes" },
-  { to: "/fact-check", icon: ShieldCheck, title: "Fact-Check Explore", desc: "Verify trending recommendations and cultural facts as you wander through cities.", cta: "Start wandering" },
+  { to: "/food", icon: ScanLine, title: "Food Explorer", desc: "Upload a photo of a menu or restaurant front to get personalised dish recommendations based on your budget and dietary needs. Or share your location to discover what's good nearby.", cta: "Open tool" },
+  { to: "/transit", icon: RouteIcon, title: "Transit Explorer", desc: "Tell Dora where you're headed and get a step-by-step transit guide with a map view, broken down in plain language.", cta: "View routes" },
+  { to: "/fact-check", icon: ShieldCheck, title: "Fact-Check Explorer", desc: "Ask about any attraction, restaurant, or place to stay and get up-to-date, verified information pulled from the latest travel trends. Great for finding hidden gems or checking if somewhere is actually worth the hype.", cta: "Start wandering" },
+  { to: "/cultural", icon: Camera, title: "Cultural Explorer", desc: "Point your camera at anything around you — a landmark, sign, banner, or poster — and get the cultural backstory, local etiquette, useful phrases, and how to say them out loud.", cta: "Open camera" },
 ];
+
+interface ChatMsg {
+  role: "user" | "assistant";
+  content: string;
+  actionType?: string;
+}
+
+/** Strip LLM reasoning/thinking artifacts */
+function cleanReply(raw: string): string {
+  let text = raw;
+  text = text.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, "");
+  const idx = text.lastIndexOf("</reasoning>");
+  if (idx !== -1) text = text.substring(idx + "</reasoning>".length);
+  text = text.replace(/<\/?reasoning>/gi, "");
+  text = text
+    .split("\n")
+    .filter((line) => {
+      const pct = line.match(/%[0-9A-Fa-f]{2}/g);
+      return !(pct && pct.length > 10 && (pct.length * 3) / line.length > 0.4);
+    })
+    .join("\n");
+  return text.trim();
+}
 
 function Home() {
   const { username } = useUser();
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, loading]);
+
+  const handleSend = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+
+    const userMsg: ChatMsg = { role: "user", content: text };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setLoading(true);
+
+    try {
+      // Build history from last 6 messages for context
+      const history = [...messages, userMsg]
+        .slice(-6)
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      const res = await fetch("http://localhost:8000/api/v1/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          history,
+          location: "Unknown",
+        }),
+      });
+
+      if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+
+      const data: { action_type: string; reply: string } = await res.json();
+      const assistantMsg: ChatMsg = {
+        role: "assistant",
+        content: cleanReply(data.reply),
+        actionType: data.action_type,
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
+    } catch (err: any) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: `⚠️ Something went wrong: ${err.message}`, actionType: "ERROR" },
+      ]);
+    } finally {
+      setLoading(false);
+      inputRef.current?.focus();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const actionBadge = (type?: string) => {
+    if (!type || type === "ERROR") return null;
+    const map: Record<string, { label: string; color: string }> = {
+      RESEARCH: { label: "Deep Research", color: "#6366f1" },
+      ROUTING: { label: "Feature Tip", color: "#f59e0b" },
+      GENERAL: { label: "Chat", color: "#10b981" },
+    };
+    const badge = map[type] || { label: type, color: "#6b7280" };
+    return (
+      <span
+        className="inline-block text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full mb-2"
+        style={{ background: `${badge.color}18`, color: badge.color, border: `1px solid ${badge.color}30` }}
+      >
+        {badge.label}
+      </span>
+    );
+  };
 
   return (
     <AppShell>
@@ -35,17 +155,99 @@ function Home() {
         <p className="mt-5 text-muted-foreground max-w-xl mx-auto">
           One quiet companion for the messy parts of travel — menus, trains, customs, and the gut feeling that you might be missing something.
         </p>
-        <div className="glass-card max-w-2xl mx-auto mt-10 p-2 flex items-center">
-          <Search className="size-5 text-muted-foreground mx-4" />
-          <input
-            placeholder="Ask Dora anything — a dish, a station, a custom…"
-            className="flex-1 bg-transparent outline-none py-3 text-sm"
-          />
-          <button className="btn-primary">Search</button>
+
+        {/* Chat Interface */}
+        <div className="glass-card max-w-2xl mx-auto mt-10 overflow-hidden">
+          {/* Messages Area */}
+          {messages.length > 0 && (
+            <div
+              ref={scrollRef}
+              className="max-h-[400px] overflow-y-auto p-5 space-y-4 text-left"
+              style={{ scrollBehavior: "smooth" }}
+            >
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  style={{ animation: "fadeSlideIn 0.3s ease-out" }}
+                >
+                  {msg.role === "assistant" && (
+                    <div className="size-7 rounded-full bg-cream border border-border flex-shrink-0 flex items-center justify-center mt-1">
+                      <Bot className="size-3.5 text-ink" />
+                    </div>
+                  )}
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                      msg.role === "user"
+                        ? "bg-ink text-white rounded-br-md"
+                        : "bg-cream/60 text-ink rounded-bl-md border border-border/50"
+                    }`}
+                  >
+                    {msg.role === "assistant" && actionBadge(msg.actionType)}
+                    {msg.role === "assistant" ? (
+                      <div className="food-prose">
+                        <Suspense fallback={<Loader2 className="size-3 animate-spin" />}>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{msg.content}</ReactMarkdown>
+                        </Suspense>
+                      </div>
+                    ) : (
+                      <p>{msg.content}</p>
+                    )}
+                  </div>
+                  {msg.role === "user" && (
+                    <div className="size-7 rounded-full bg-ink text-white flex-shrink-0 flex items-center justify-center mt-1 text-xs font-medium">
+                      {(username || "U")[0].toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {loading && (
+                <div className="flex gap-3 justify-start" style={{ animation: "fadeSlideIn 0.3s ease-out" }}>
+                  <div className="size-7 rounded-full bg-cream border border-border flex-shrink-0 flex items-center justify-center mt-1">
+                    <Bot className="size-3.5 text-ink" />
+                  </div>
+                  <div className="bg-cream/60 text-ink rounded-2xl rounded-bl-md border border-border/50 px-4 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="size-1.5 rounded-full bg-ink/40 animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <span className="size-1.5 rounded-full bg-ink/40 animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="size-1.5 rounded-full bg-ink/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Input Bar */}
+          <div className={`flex items-center p-2 ${messages.length > 0 ? "border-t border-border/40" : ""}`}>
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask Dora anything — a dish, a station, a custom…"
+              className="flex-1 bg-transparent outline-none py-3 px-4 text-sm"
+              disabled={loading}
+            />
+            <button
+              onClick={handleSend}
+              disabled={loading || !input.trim()}
+              className="btn-primary disabled:opacity-40 flex items-center gap-2"
+            >
+              {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              Send
+            </button>
+          </div>
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 mt-8 grid md:grid-cols-3 gap-5">
+      <section className="max-w-6xl mx-auto px-6 mt-16 mb-4">
+        <h2 className="font-serif text-3xl md:text-4xl text-ink italic text-center">
+          How to use Dora:
+        </h2>
+      </section>
+
+      <section className="max-w-6xl mx-auto px-6 mt-8 grid md:grid-cols-2 lg:grid-cols-4 gap-5">
         {features.map((f) => (
           <Link key={f.to} to={f.to} className="glass-card p-7 group hover:translate-y-[-2px] transition-transform">
             <div className="size-10 rounded-lg bg-cream border border-border flex items-center justify-center">
@@ -85,3 +287,4 @@ function Home() {
     </AppShell>
   );
 }
+

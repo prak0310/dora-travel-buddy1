@@ -5,7 +5,6 @@ import { useUser } from "@/lib/UserContext";
 
 const nav = [
   { to: "/", label: "Explore" },
-  { to: "/translate", label: "Translate" },
   { to: "/fact-check", label: "Fact-Check" },
   { to: "/transit", label: "Transit" },
   { to: "/food", label: "Food" },
