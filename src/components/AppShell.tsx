@@ -9,6 +9,7 @@ const nav = [
   { to: "/transit", label: "Transit" },
   { to: "/food", label: "Food" },
   { to: "/cultural", label: "Cultural Guide" },
+  { to: "/settings", label: "Settings" },
 ];
 
 export function AppShell({ children, active }: { children: ReactNode; active?: string }) {
