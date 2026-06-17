@@ -1,0 +1,562 @@
+{
+  "name": "Dora - Personalised Exploration",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dora-personalised",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        448,
+        -64
+      ],
+      "id": "bf2652a9-12a4-4160-b649-669afc7bce03",
+      "name": "Webhook",
+      "webhookId": "11ea196b-5a39-4f01-9d39-ce7b5f32638f"
+    },
+    {
+      "parameters": {
+        "url": "https://dhnjasuzvslnmjxdqthw.supabase.co/rest/v1/user_searches",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "=eq.{{ $json.body.userId }}"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        656,
+        -64
+      ],
+      "id": "a7ab3fd3-4a99-4ed9-847b-0ce05fc5dcf1",
+      "name": "fetch user history"
+    },
+    {
+      "parameters": {
+        "jsCode": "const history = $input.all().map(i => i.json);\nconst destination = history[0]?.destination || \"Tokyo\";\nconst userId = $('Webhook').first().json.body.userId;\nconst categories = history.map(h => h.category).filter(Boolean);\nconst queries = history.map(h => h.query).filter(Boolean);\nconst categoryCounts = {};\ncategories.forEach(c => { categoryCounts[c] = (categoryCounts[c] || 0) + 1; });\nconst topCategories = Object.entries(categoryCounts)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 3)\n  .map(e => e[0]);\nconst recentQueries = queries.slice(0, 5).join(', ');\nreturn [{\n  json: {\n    userId,\n    destination,\n    topCategories,\n    recentQueries,\n    historyCount: history.length\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        -64
+      ],
+      "id": "e6054625-fc27-4c9f-a524-f4a6237e9bc9",
+      "name": "analyse history"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.reka.ai/v1/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key ",
+              "value": "REMOVED_REKA_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: \"reka-flash\",\n  messages: [\n    {\n      role: \"user\",\n      content: \"You are Dora, a travel personalisation AI. Based on a user's travel history, generate 4 specific search queries for personalised recommendations in \" + $json.destination + \". User's top categories: \" + $json.topCategories.join(', ') + \". Recent searches: \" + $json.recentQueries + \". Generate exactly 4 queries, one for each category: trending spots, seasonal attractions, hidden gems, local experiences. Return ONLY a JSON object with this exact format: {\\\"trending\\\": \\\"query here\\\", \\\"seasonal\\\": \\\"query here\\\", \\\"hidden_gems\\\": \\\"query here\\\", \\\"local\\\": \\\"query here\\\"}. No markdown. No explanation.\"\n    }\n  ]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1072,
+        -64
+      ],
+      "id": "c411db17-2997-45ca-8eef-0b1b9942bd36",
+      "name": "generate smart queries"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $json.responses[0].message.content;\nconst cleaned = response.replace(/```json/g, '').replace(/```/g, '').trim();\n\nlet queries;\ntry {\n  queries = JSON.parse(cleaned);\n} catch(e) {\n  const match = cleaned.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    try { queries = JSON.parse(match[0]); } \n    catch { queries = null; }\n  }\n}\n\nif (!queries) {\n  queries = {\n    trending: 'trending tourist spots',\n    seasonal: 'seasonal attractions',\n    hidden_gems: 'hidden gems underrated',\n    local: 'local experiences authentic'\n  };\n}\n\nconst destination = $('Webhook').first().json.body.destination;\nconst userId = $('Webhook').first().json.body.userId;\n\nreturn Object.entries(queries).map(([category, query]) => ({\n  json: { category, query, destination, userId }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        -64
+      ],
+      "id": "d50a4328-8ae9-47e5-b192-a2531accc516",
+      "name": "split queries"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"api_key\": \"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\",\n  \"query\": \"={{ '[' + $json.category + '] ' + $json.query + ' in ' + $json.destination + ' viral TikTok Instagram recommendations' }}\",\n  \"search_depth\": \"advanced\",\n  \"max_results\": 3,\n  \"include_answer\": true,\n  \"include_raw_content\": false\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1488,
+        -64
+      ],
+      "id": "a3ed2167-9de0-4332-91c6-6bafb3fdc605",
+      "name": "Tavily Search"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $json.responses[0].message.content;\nconst cleaned = response.replace(/```json/g, '').replace(/```/g, '').trim();\nlet places = [];\ntry { places = JSON.parse(cleaned); } catch(e) { places = []; }\n\nconst destination = $('Webhook').first().json.body.destination;\nconst userId = $('Webhook').first().json.body.userId;\n\n// Extract category from the query string prefix [category]\nconst queryStr = $json.query || '';\nconst categoryMatch = queryStr.match(/^\\[([^\\]]+)\\]/);\nconst category = categoryMatch ? categoryMatch[1] : 'general';\n\nreturn places.slice(0,3).map(place => ({ \n  json: { placeName: place, destination, category, userId } \n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        -64
+      ],
+      "id": "ae01e87a-4fcd-403a-9ca2-8e7cdc4b2bf9",
+      "name": "split places"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://places.googleapis.com/v1/places:searchText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Goog-Api-Key",
+              "value": "AIzaSyBNwxcnzPuVNCad7u4jlvhQ2jjGYJvKa6s"
+            },
+            {
+              "name": "X-Goog-FieldMask",
+              "value": "places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.googleMapsUri,places.websiteUri"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "textQuery",
+              "value": "={{ $json.placeName + ' ' + $json.destination }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2320,
+        -64
+      ],
+      "id": "36745f47-d743-487c-8c2d-9c192bcefdbb",
+      "name": "google places search"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.reka.ai/v1/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "REMOVED_REKA_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'reka-flash', messages: [{ role: 'user', content: 'You are Dora, a travel recommendation expert. Given this Google Places result, judge whether the place is genuinely worth recommending to tourists. Use googleMapsUri as the url. Return ONLY valid JSON: {\"placeName\":\"\",\"verdict\":\"Highly Recommended / Worth Trying / Mixed / Overhyped\",\"confidence\":0,\"reason\":\"\",\"rating\":0,\"reviewCount\":0,\"url\":\"\"} Google Places data: ' + JSON.stringify($json) }] }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2528,
+        -64
+      ],
+      "id": "1c363206-72e9-4cb3-8403-628987cdeb7e",
+      "name": "reka fact check"
+    },
+    {
+      "parameters": {
+        "jsCode": "const destination = $('analyse history').first().json.destination;\nconst userId = $('Webhook').first().json.body.userId;\n\nreturn $input.all().map(item => {\n  if (item.json.error) return null;\n  const response = item.json.responses?.[0]?.message?.content;\n  if (!response) return null;\n  const cleaned = response.replace(/```json/g, '').replace(/```/g, '').trim();\n  let parsed;\n  try { parsed = JSON.parse(cleaned); }\n  catch(e) {\n    const match = cleaned.match(/\\{[\\s\\S]*\\}/);\n    if (match) { try { parsed = JSON.parse(match[0]); } catch { return null; } }\n    else return null;\n  }\n  if (!parsed.placeName || parsed.placeName === 'Unknown') return null;\n  if (!parsed.verdict) return null;\n  return { json: { ...parsed, destination, userId } };\n}).filter(i => i !== null);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2736,
+        -64
+      ],
+      "id": "5bb2c5c6-a972-40ec-ad58-e4532552e11d",
+      "name": "clean reka output"
+    },
+    {
+      "parameters": {
+        "jsCode": "const GOOGLE_PLACES_KEY = \"REMOVED_MAPS_KEY\";\n\nconst rekaItems = $('clean reka output').all();\n\nreturn $input.all().map((item, i) => {\n  const data = rekaItems[i]?.json ?? {};\n  const photoData = item.json;\n\n  let photoUrl = null;\n  const photoName = photoData?.places?.[0]?.photos?.[0]?.name;\n  if (photoName) {\n    photoUrl = `https://places.googleapis.com/v1/${photoName}/media?maxHeightPx=800&key=${GOOGLE_PLACES_KEY}`;\n  }\n\n  const userId = $('Webhook').first().json.body.userId;\n  const destination = data.destination;\n\n  return {\n    json: {\n      userId,\n      destination,\n      title: `✨ ${data.placeName ?? \"Recommendation\"}`,\n      verdict: data.verdict,\n      confidence: data.confidence,\n      rating: data.rating,\n      reviewCount: data.reviewCount,\n      summary: data.reason,\n      url: data.url || null,\n      photoUrl: photoUrl\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3152,
+        -64
+      ],
+      "id": "afa1f52e-962c-4116-b05a-187e22c1fbc5",
+      "name": "make dora cards"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dhnjasuzvslnmjxdqthw.supabase.co/rest/v1/personalised_recommendations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ user_id: $json.userId, destination: $json.destination, category: $json.category, title: $json.title, url: $json.url || null, verdict: $json.verdict, confidence: $json.confidence, rating: $json.rating, review_count: $json.reviewCount, summary: $json.summary, photo_url: $json.photoUrl }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3360,
+        -64
+      ],
+      "id": "907cd31b-ed7f-4d79-bd0b-9377747135b0",
+      "name": "save to personalised"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { source: 'personalised', recommendations: $('make dora cards').all().map(i => i.json) } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        3568,
+        -64
+      ],
+      "id": "47ccfc4f-269e-4ef3-a671-c2edda27b95a",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.reka.ai/v1/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "REMOVED_REKA_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: \"reka-flash\",\n  messages: [\n    {\n      role: \"user\",\n      content: \"Extract up to 3 specific tourist-relevant place names from this search result — restaurants, cafes, attractions, parks, temples, museums, neighbourhoods, or landmarks that a traveller would actually visit. Do NOT include schools, school districts, government buildings, hospitals, residential areas, or generic businesses unrelated to tourism. Return ONLY a JSON array of strings. If no valid tourist-relevant places are found, return an empty array []. No markdown. No explanation. Data: \" +\n        (($json.results?.[0]?.title || '') + ' ' +\n        ($json.results?.[0]?.content || '') + ' ' +\n        ($json.results?.[1]?.title || '') + ' ' +\n        ($json.results?.[1]?.content || '') + ' ' +\n        ($json.results?.[2]?.title || '') + ' ' +\n        ($json.results?.[2]?.content || '')).replace(/\\n/g, ' ')\n    }\n  ]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1904,
+        -64
+      ],
+      "id": "a1a3515a-6d8b-452e-9df5-e37d14cc2cea",
+      "name": "Reka Extract Places"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const category = $input.item.json.category;\nconst userId = $input.item.json.userId;\nconst destination = $input.item.json.destination;\nconst tavilyData = $input.item.json;\n\nreturn {\n  json: {\n    ...tavilyData,\n    _category: category,\n    _userId: userId,\n    _destination: destination\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        -64
+      ],
+      "id": "44f9f688-42a8-4a93-a552-002a9142e596",
+      "name": "preserve category"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://places.googleapis.com/v1/places:searchText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Goog-Api-Key",
+              "value": "REMOVED_MAPS_KEY"
+            },
+            {
+              "name": "X-Goog-FieldMask",
+              "value": "places.photos"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ textQuery: $json.placeName + \" \" + $json.destination }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2944,
+        -64
+      ],
+      "id": "7e906d36-26f8-4967-b0e1-fd677cc0bb8e",
+      "name": "fetch place photo",
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "fetch user history",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch user history": {
+      "main": [
+        [
+          {
+            "node": "analyse history",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analyse history": {
+      "main": [
+        [
+          {
+            "node": "generate smart queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "generate smart queries": {
+      "main": [
+        [
+          {
+            "node": "split queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "split queries": {
+      "main": [
+        [
+          {
+            "node": "Tavily Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily Search": {
+      "main": [
+        [
+          {
+            "node": "preserve category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "split places": {
+      "main": [
+        [
+          {
+            "node": "google places search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google places search": {
+      "main": [
+        [
+          {
+            "node": "reka fact check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reka fact check": {
+      "main": [
+        [
+          {
+            "node": "clean reka output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "clean reka output": {
+      "main": [
+        [
+          {
+            "node": "fetch place photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "make dora cards": {
+      "main": [
+        [
+          {
+            "node": "save to personalised",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save to personalised": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reka Extract Places": {
+      "main": [
+        [
+          {
+            "node": "split places",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "preserve category": {
+      "main": [
+        [
+          {
+            "node": "Reka Extract Places",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch place photo": {
+      "main": [
+        [
+          {
+            "node": "make dora cards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5638a1a5-674f-4f28-b13b-4b886b125cf5",
+  "meta": {
+    "instanceId": "f958f4b4c59f850e1a5de2b55a1e3ee205978afce090588543285ded564cebc7"
+  },
+  "id": "Ab3xhFRI6tqMNgX0",
+  "tags": []
+}

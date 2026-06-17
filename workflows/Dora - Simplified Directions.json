@@ -1,0 +1,379 @@
+{
+  "name": "Dora - Simplified Directions",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dora-directions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -624,
+        160
+      ],
+      "id": "6bcde7e8-9f60-41ac-be28-9efa4e6f6f5a",
+      "name": "Webhook",
+      "webhookId": "7021d565-c41b-47ea-b2b0-96525cb6a4a4"
+    },
+    {
+      "parameters": {
+        "url": "https://dhnjasuzvslnmjxdqthw.supabase.co/rest/v1/directions_cache",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "origin",
+              "value": "=ilike.{{ $json.body.origin }}"
+            },
+            {
+              "name": "destination",
+              "value": "=ilike.{{ $json.body.destination }}"
+            },
+            {
+              "name": "city",
+              "value": "=ilike.{{ $json.body.city }}"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -416,
+        160
+      ],
+      "id": "be241b6b-9753-4f30-89e0-49b07f6f3889",
+      "name": "check directions cache",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $('check directions cache').all().filter(item => item.json.id).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -208,
+        160
+      ],
+      "id": "8228388b-cf93-40dc-8703-de3f66e820ea",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "=={{ { \n  source: \"cache\", \n  directions: $input.first().json \n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "08deb458-dab4-43af-86a5-48c43ce28f35",
+      "name": "return cached directions"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://routes.googleapis.com/directions/v2:computeRoutes",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Goog-Api-Key",
+              "value": "REMOVED_MAPS_KEY"
+            },
+            {
+              "name": "X-Goog-FieldMask",
+              "value": "*"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  origin: {\n    address: $('Webhook').first().json.body.origin + \", \" + $('Webhook').first().json.body.city\n  },\n  destination: {\n    address: $('Webhook').first().json.body.destination + \", \" + $('Webhook').first().json.body.city\n  },\n  travelMode: \"TRANSIT\",\n  computeAlternativeRoutes: false\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        0,
+        320
+      ],
+      "id": "4c9abe4e-b6d7-4ee6-8db7-378c7ed32c26",
+      "name": "Google Directions"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\nconst route = data.routes?.[0];\n\n// If Google has no route data, pass directly to Reka with a flag\nif (!route) {\n  return [{\n    json: {\n      origin: $('Webhook').first().json.body.origin,\n      destination: $('Webhook').first().json.body.destination,\n      city: $('Webhook').first().json.body.city,\n      totalDuration: null,\n      totalDistance: null,\n      steps: [],\n      useKnowledgeFallback: true\n    }\n  }];\n}\n\nconst leg = route.legs[0];\nconst steps = leg.steps.map(step => ({\n  instruction: step.navigationInstruction?.instructions || '',\n  distance: step.distanceMeters ? step.distanceMeters + 'm' : null,\n  duration: step.staticDuration || null,\n  travelMode: step.travelMode,\n  transitDetails: step.transitDetails ? {\n    line: step.transitDetails.transitLine?.nameShort || step.transitDetails.transitLine?.name,\n    vehicle: step.transitDetails.transitLine?.vehicle?.name,\n    departureStop: step.transitDetails.stopDetails?.departureStop?.name,\n    arrivalStop: step.transitDetails.stopDetails?.arrivalStop?.name,\n    numStops: step.transitDetails.stopCount\n  } : null\n}));\n\nreturn [{\n  json: {\n    origin: $('Webhook').first().json.body.origin,\n    destination: $('Webhook').first().json.body.destination,\n    city: $('Webhook').first().json.body.city,\n    totalDuration: leg.duration || null,\n    totalDistance: leg.distanceMeters ? leg.distanceMeters + 'm' : null,\n    steps: steps,\n    useKnowledgeFallback: false\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        320
+      ],
+      "id": "e6978a67-1a52-4f57-be9b-70362a039503",
+      "name": "extract route steps"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.reka.ai/v1/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "REMOVED_REKA_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: \"reka-flash\",\n  messages: [{\n    role: \"user\",\n    content: $json.useKnowledgeFallback\n      ? \"You are Dora, a friendly travel guide. Give accurate, step-by-step public transit directions from \" + $json.origin + \" to \" + $json.destination + \" in \" + $json.city + \" based on your own knowledge of the transit system. Use real line names, station names, exit numbers, and approximate times. Rules: convert all times to minutes, keep to 6-8 steps, write for a first-time tourist. Return ONLY a JSON array of step strings. No markdown. No explanation.\"\n      : \"You are Dora, a friendly travel guide helping tourists navigate public transport in \" + $json.city + \". You have been given raw transit directions that may contain vague instructions like 'Walk for 40s' or distances in metres with no context. Rewrite ALL steps into clear, friendly, tourist-readable instructions.\\n\\nRules:\\n- NEVER say 'Walk for Xs' — always say what to walk towards, through, or look for\\n- Convert seconds to minutes (e.g. 840s = about 14 minutes)\\n- Merge consecutive short walking steps into one step\\n- Keep the total to 6-8 steps maximum by combining short connector steps\\n- Use real station/stop names from the data\\n- Add landmark cues and directional hints where possible\\n- Write as if speaking to a first-time tourist who has never used this transit system\\n\\nReturn ONLY a JSON array of simplified step strings. No markdown. No explanation.\\n\\nRaw directions: \" + JSON.stringify($json.steps) + \"\\nTotal journey: \" + $json.totalDuration + \", \" + $json.totalDistance\n  }]\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        320
+      ],
+      "id": "bb3928fd-2cbe-4592-9837-ad56f2793a49",
+      "name": "Reka Simplify"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $json.responses[0].message.content;\nconst cleaned = response.replace(/```json/g, '').replace(/```/g, '').trim();\nlet steps = [];\ntry { steps = JSON.parse(cleaned); } catch(e) {\n  const match = cleaned.match(/\\[[\\s\\S]*\\]/);\n  if (match) { try { steps = JSON.parse(match[0]); } catch { steps = [cleaned]; } }\n  else { steps = [cleaned]; }\n}\n\nconst origin = $('Webhook').first().json.body.origin;\nconst destination = $('Webhook').first().json.body.destination;\nconst city = $('Webhook').first().json.body.city;\n\nfunction formatDuration(d) {\n  if (!d) return null;\n  const secs = parseInt(String(d).replace(/[^0-9]/g, ''));\n  if (isNaN(secs) || secs === 0) return null;\n  const mins = Math.round(secs / 60);\n  if (mins < 60) return mins + ' mins';\n  const hrs = Math.floor(mins / 60);\n  const remaining = mins % 60;\n  return remaining > 0 ? hrs + ' hr ' + remaining + ' mins' : hrs + ' hr';\n}\n\nconst rawDuration = $('Google Directions').first().json.routes?.[0]?.legs?.[0]?.duration || null;\nlet totalDuration = formatDuration(rawDuration);\n\n// Estimate from steps text if Google returned nothing\nif (!totalDuration && steps.length > 0) {\n  const allText = steps.join(' ').toLowerCase();\n  const minuteMatches = allText.match(/(\\d+)\\s*minute/g) || [];\n  const totalMins = minuteMatches.reduce((sum, m) => {\n    const n = parseInt(m.match(/\\d+/)[0]);\n    return sum + n;\n  }, 0);\n  if (totalMins > 0) totalDuration = '~' + totalMins + ' mins';\n}\n\nreturn [{ \n  json: { origin, destination, city, totalDuration, simplifiedSteps: steps } \n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        320
+      ],
+      "id": "b32447ae-03f5-4dce-87cb-84faf85e7fb6",
+      "name": "clean reka output"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dhnjasuzvslnmjxdqthw.supabase.co/rest/v1/directions_cache",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ \n  origin: $('clean reka output').first().json.origin, \n  destination: $('clean reka output').first().json.destination, \n  city: $('clean reka output').first().json.city, \n  simplified_steps: $('clean reka output').first().json.simplifiedSteps, \n  raw_duration: $('clean reka output').first().json.totalDuration, \n  raw_distance: $('clean reka output').first().json.totalDistance \n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        832,
+        320
+      ],
+      "id": "7aaf9dc5-568d-4674-aa96-ff18535704b8",
+      "name": "save directions"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { source: 'fresh', directions: $('clean reka output').first().json } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1040,
+        320
+      ],
+      "id": "594c65ae-d633-437f-a622-be689ece748e",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "check directions cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check directions cache": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "return cached directions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Google Directions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Directions": {
+      "main": [
+        [
+          {
+            "node": "extract route steps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract route steps": {
+      "main": [
+        [
+          {
+            "node": "Reka Simplify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reka Simplify": {
+      "main": [
+        [
+          {
+            "node": "clean reka output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "clean reka output": {
+      "main": [
+        [
+          {
+            "node": "save directions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save directions": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "return cached directions": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "53878d6c-f9fd-4da9-ab66-786fea110e8c",
+  "meta": {
+    "instanceId": "f958f4b4c59f850e1a5de2b55a1e3ee205978afce090588543285ded564cebc7"
+  },
+  "id": "V8NDxiDZMY0StqnA",
+  "tags": []
+}
