@@ -109,6 +109,17 @@
     color: var(--foreground);
     font-family: ui-sans-serif, system-ui, -apple-system, "Inter", sans-serif;
     -webkit-font-smoothing: antialiased;
+    cursor: url('/map.png'), auto;
+  }
+
+  a,
+  button,
+  [role="button"],
+  .cursor-pointer,
+  input[type="submit"],
+  input[type="button"],
+  select {
+    cursor: url('/backpack.png'), pointer;
   }
 
   .font-serif {
