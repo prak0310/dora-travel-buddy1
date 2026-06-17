@@ -131,7 +131,7 @@ function FactCheck() {
             <ShieldCheck className="size-3" /> AI trust layer
           </span>
 
-          <h1 className="font-serif text-6xl text-ink mt-4 leading-[1.05]">
+          <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl text-ink mt-4 leading-[1.05]">
             The Fact-Check Feed
           </h1>
 

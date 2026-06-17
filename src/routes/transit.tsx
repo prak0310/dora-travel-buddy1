@@ -200,7 +200,7 @@ function Transit() {
       <section className="max-w-6xl mx-auto px-6 pt-16 pb-20">
         <div className="max-w-2xl">
           <span className="pill"><Train className="size-3" /> Live transit</span>
-          <h1 className="font-serif text-6xl text-ink mt-4 leading-[1.05]">Your Simple Path</h1>
+          <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl text-ink mt-4 leading-[1.05]">Your Simple Path</h1>
           <p className="mt-4 text-muted-foreground">
             Enter your origin, destination, and city to get plain-language step-by-step transit directions.
           </p>
@@ -310,7 +310,7 @@ function Transit() {
               <div className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <MapPin className="size-3" /> Route overview
               </div>
-              <div className="flex-1 rounded-lg overflow-hidden border border-border" style={{ minHeight: "420px" }}>
+              <div className="flex-1 rounded-lg overflow-hidden border border-border h-64 sm:h-96 md:h-full md:min-h-[420px]">
                 <GoogleMap
                   origin={result.directions.origin}
                   destination={result.directions.destination}

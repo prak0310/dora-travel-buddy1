@@ -64,7 +64,7 @@ function RecCard({ recs, destination }: { recs: Rec[]; destination: string }) {
   return (
     <div>
       <div className="glass-card overflow-hidden grid md:grid-cols-[1.3fr_1fr]">
-        <div className="p-10">
+        <div className="p-6 md:p-10">
           <span className="pill" style={{ background: "color-mix(in oklch, var(--terracotta) 14%, white)", color: "var(--terracotta)", borderColor: "color-mix(in oklch, var(--terracotta) 25%, transparent)" }}>
             ● {label}
           </span>
@@ -377,8 +377,8 @@ function Home() {
     <AppShell>
       <ScrollVideo />
 
-      <div className="relative bg-cream z-10 pt-10">
-        <section className="relative max-w-6xl mx-auto px-6 pt-20 pb-12 text-center">
+      <div className="relative bg-cream z-10 pt-4 md:pt-6">
+        <section className="relative max-w-6xl mx-auto px-6 pt-6 md:pt-10 pb-12 text-center">
           <img 
             src="/dora.jpeg" 
             alt="Dora" 
@@ -387,7 +387,7 @@ function Home() {
           />
 
           <span className="pill relative z-10"><Sparkles className="size-3" /> Travel light. Wander braver.</span>
-          <h1 className="relative z-10 font-serif text-6xl md:text-7xl text-ink mt-6 leading-[1.05]">
+          <h1 className="relative z-10 font-serif text-4xl sm:text-5xl md:text-7xl text-ink mt-6 leading-[1.05]">
             Where to next, <em className="italic">{username || "Traveller"}?</em>
           </h1>
           <p className="relative z-10 mt-5 text-muted-foreground max-w-xl mx-auto">
@@ -542,10 +542,10 @@ function Home() {
             <button
               onClick={handleSend}
               disabled={chatLoading || !input.trim()}
-              className="btn-primary disabled:opacity-40 flex items-center gap-2"
+              className="btn-primary disabled:opacity-40 flex items-center gap-2 px-3 sm:px-5 py-2.5"
             >
               {chatLoading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-              Send
+              <span className="hidden sm:inline">Send</span>
             </button>
             <audio ref={audioPlayerRef} className="hidden" />
           </div>
@@ -630,7 +630,7 @@ function Home() {
         {/* No results — fall back to Gion card */}
         {!loading && searched && recs.length === 0 && (
           <div className="glass-card overflow-hidden grid md:grid-cols-[1.3fr_1fr]">
-            <div className="p-10">
+            <div className="p-6 md:p-10">
               <span className="pill" style={{ background: "color-mix(in oklch, var(--terracotta) 14%, white)", color: "var(--terracotta)", borderColor: "color-mix(in oklch, var(--terracotta) 25%, transparent)" }}>● Live recommendation</span>
               <h2 className="font-serif text-4xl text-ink mt-5 leading-tight">Sipping Peace in the Gion District</h2>
               <p className="mt-4 text-muted-foreground leading-relaxed">

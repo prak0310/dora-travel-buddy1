@@ -139,7 +139,7 @@ function CulturalContent() {
     <section className="max-w-3xl mx-auto px-6 pt-10 pb-20">
       <div className="text-center mb-10">
         <span className="pill">Cultural Guide</span>
-        <h1 className="font-serif text-5xl text-ink mt-4">
+        <h1 className="font-serif text-3xl sm:text-5xl text-ink mt-4">
           Understand What You See
         </h1>
         <p className="text-muted-foreground mt-3">
@@ -151,7 +151,7 @@ function CulturalContent() {
       <div className="glass-card p-6 mb-6">
         <form onSubmit={handleSubmit}>
           <div
-            className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:bg-cream/50"
+            className="border-2 border-dashed border-border rounded-lg p-6 sm:p-8 text-center cursor-pointer hover:bg-cream/50"
             onClick={() => fileInputRef.current?.click()}
           >
             <input
@@ -247,7 +247,7 @@ function CulturalContent() {
           {result.slang_audio_base64 && (
             <div>
               <h2 className="font-semibold text-lg mb-2">Listen</h2>
-              <audio controls src={result.slang_audio_base64} />
+              <audio controls src={result.slang_audio_base64} className="w-full max-w-md" />
             </div>
           )}
         </div>

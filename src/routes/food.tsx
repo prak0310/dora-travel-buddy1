@@ -209,7 +209,7 @@ const FoodContent = memo(function FoodContent() {
     <section className="max-w-4xl mx-auto px-6 pt-10 pb-20">
       <div className="text-center mb-10">
         <span className="pill">Food Guide</span>
-        <h1 className="font-serif text-5xl text-ink mt-4">Discover & Translate</h1>
+        <h1 className="font-serif text-3xl sm:text-5xl text-ink mt-4">Discover & Translate</h1>
         <p className="text-muted-foreground mt-3 max-w-lg mx-auto">
           Find the perfect local dish matching your cravings or let Dora analyze a menu in front of you.
         </p>
@@ -319,7 +319,7 @@ const FoodContent = memo(function FoodContent() {
             <div className="mb-4">
               <label className="block text-sm font-medium text-ink mb-1">Upload Menu or Storefront Image</label>
               <div 
-                className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:bg-cream/50 transition-colors"
+                className="border-2 border-dashed border-border rounded-lg p-6 sm:p-8 text-center cursor-pointer hover:bg-cream/50 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <input 

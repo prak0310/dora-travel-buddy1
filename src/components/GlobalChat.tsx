@@ -203,10 +203,10 @@ export function GlobalChat() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className={`fixed z-50 flex flex-col items-end transition-all duration-300 ${isOpen ? "inset-0 sm:inset-auto sm:bottom-6 sm:right-6" : "bottom-6 right-6"}`}>
       {/* Chat Window */}
       {isOpen && (
-        <div className="w-[90vw] sm:w-[380px] h-[500px] bg-card border border-border shadow-2xl rounded-2xl flex flex-col overflow-hidden mb-4 animate-[fadeSlideIn_0.3s_ease] transition-all">
+        <div className="w-full h-full sm:w-[380px] sm:h-[500px] bg-card border-0 sm:border border-border shadow-2xl rounded-none sm:rounded-2xl flex flex-col overflow-hidden sm:mb-4 animate-[fadeSlideIn_0.3s_ease] transition-all">
           {/* Header */}
           <div className="bg-[#6b316f] text-white px-4 py-3 flex items-center justify-between shadow-md">
             <div className="flex items-center gap-2">
@@ -291,7 +291,7 @@ export function GlobalChat() {
           </div>
 
           {/* Footer Input */}
-          <div className="p-2 border-t border-border bg-card flex items-center gap-1.5">
+          <div className="p-2 pb-4 sm:pb-2 border-t border-border bg-card flex items-center gap-1.5">
             <input
               ref={inputRef}
               value={input}
@@ -325,7 +325,7 @@ export function GlobalChat() {
       {/* Floating Circle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden border-2 border-[#6b316f] bg-[#faf5ee] shadow-2xl cursor-pointer flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group focus:outline-none focus:ring-2 focus:ring-[#6b316f]/50"
+        className={`w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden border-2 border-[#6b316f] bg-[#faf5ee] shadow-2xl cursor-pointer flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group focus:outline-none focus:ring-2 focus:ring-[#6b316f]/50 ${isOpen ? "hidden sm:flex" : "flex"}`}
         title="Chat with Dora AI"
       >
         <img

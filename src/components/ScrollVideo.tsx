@@ -130,7 +130,7 @@ export function ScrollVideo() {
   const showHint = scrollProgress < 0.02;
 
   return (
-    <div ref={containerRef} className="relative w-full" style={{ height: "450vh" }}>
+    <div ref={containerRef} className="hidden md:block relative w-full" style={{ height: "410vh" }}>
       <div className="sticky top-16 w-full h-[calc(100vh-4rem)] overflow-hidden bg-black flex items-center justify-center">
         {/* Darkened Video Background */}
         <video

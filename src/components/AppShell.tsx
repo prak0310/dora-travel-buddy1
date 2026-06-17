@@ -1,6 +1,6 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { Globe, LogOut } from "lucide-react";
-import type { ReactNode } from "react";
+import { Globe, LogOut, Menu, X } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { useUser } from "@/lib/UserContext";
 import { GlobalChat } from "./GlobalChat";
 
@@ -18,6 +18,7 @@ export function AppShell({ children, active }: { children: ReactNode; active?: s
   const current = active ?? pathname;
   const { username, logout } = useUser();
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const initial = username ? username.charAt(0).toUpperCase() : "?";
 
@@ -38,7 +39,8 @@ export function AppShell({ children, active }: { children: ReactNode; active?: s
               </Link>
             ))}
           </nav>
-          <div className="flex items-center gap-3">
+          {/* Desktop User Panel */}
+          <div className="hidden md:flex items-center gap-3">
             <button className="btn-ghost"><Globe className="size-4" /> EN</button>
             {username && (
               <>
@@ -60,8 +62,98 @@ export function AppShell({ children, active }: { children: ReactNode; active?: s
               </>
             )}
           </div>
+
+          {/* Mobile Hamburger Button */}
+          <div className="flex md:hidden items-center gap-3">
+            {username && (
+              <div
+                className="size-8 rounded-full bg-gradient-to-br from-[#c4956a] to-[#a0522d] flex items-center justify-center text-white text-xs font-medium"
+                title={`Logged in as ${username}`}
+              >
+                {initial}
+              </div>
+            )}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-2 text-ink hover:bg-cream rounded-full transition-colors focus:outline-none cursor-pointer"
+              aria-label="Toggle Navigation Menu"
+            >
+              {menuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
+            </button>
+          </div>
         </div>
       </header>
+
+      {/* Mobile Drawer Navigation overlay */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-50 md:hidden bg-black/30 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Drawer */}
+      <div
+        className={`fixed top-0 right-0 bottom-0 z-50 w-[280px] bg-card border-l border-border shadow-2xl p-6 flex flex-col md:hidden transition-transform duration-300 ease-in-out ${
+          menuOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
+        }`}
+      >
+        <div className="flex items-center justify-between mb-8">
+          <Link
+            to="/"
+            onClick={() => setMenuOpen(false)}
+            className="font-serif text-2xl text-ink"
+          >
+            Dora <span className="text-muted-foreground italic">AI</span>
+          </Link>
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="p-2 text-ink hover:bg-cream rounded-full transition-colors focus:outline-none cursor-pointer"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <nav className="flex flex-col gap-4 flex-1">
+          {nav.map((n) => (
+            <Link
+              key={n.to}
+              to={n.to}
+              onClick={() => setMenuOpen(false)}
+              className={`nav-link text-base py-2 block ${current === n.to ? "active" : ""}`}
+            >
+              {n.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="border-t border-border pt-6 mt-auto flex flex-col gap-4">
+          <button className="btn-ghost w-full justify-center">
+            <Globe className="size-4" /> EN
+          </button>
+          {username && (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <div className="size-9 rounded-full bg-gradient-to-br from-[#c4956a] to-[#a0522d] flex items-center justify-center text-white text-sm font-medium">
+                  {initial}
+                </div>
+                <span className="text-sm font-medium text-ink">{username}</span>
+              </div>
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleLogout();
+                }}
+                className="btn-ghost text-[#a0522d] border-[#a0522d]/20 hover:bg-[#a0522d]/5 w-full justify-center flex items-center gap-2 cursor-pointer"
+              >
+                <LogOut className="size-4" />
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       <main className="flex-1">{children}</main>
       <footer className="border-t border-border mt-24">
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">

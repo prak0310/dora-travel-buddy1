@@ -431,6 +431,31 @@
     border-radius: 10px;
     margin: 0.8rem 0;
   }
+
+  /* Responsive login background image and mascot */
+  .login-bg-desktop {
+    background-image: none;
+  }
+  
+  .login-mascot-desktop {
+    display: none;
+  }
+  
+  .login-mascot-mobile {
+    display: flex;
+  }
+
+  @media (min-width: 1525px) and (min-height: 1330px) {
+    .login-bg-desktop {
+      background-image: var(--login-bg-img) !important;
+    }
+    .login-mascot-desktop {
+      display: block;
+    }
+    .login-mascot-mobile {
+      display: none !important;
+    }
+  }
 }
 
 @keyframes shake {
