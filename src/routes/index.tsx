@@ -85,7 +85,7 @@ function RecCard({ recs, destination }: { recs: Rec[]; destination: string }) {
             }
           </div>
         </div>
-        <div className="relative">
+        <div className="relative h-64 md:h-auto">
           <img
             src={item.photoUrl || gion}
             alt={title}
@@ -203,6 +203,14 @@ function Home() {
 
   const featuresRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -576,7 +584,7 @@ function Home() {
           {features.map((f, index) => {
             // Calculate visibility threshold for each card
             const threshold = 0.12 + index * 0.20;
-            const isVisible = scrollProgress > threshold;
+            const isVisible = isMobile || scrollProgress > threshold;
 
             return (
               <Link
@@ -641,7 +649,7 @@ function Home() {
                 <button className="btn-ghost">Save for later</button>
               </div>
             </div>
-            <div className="relative">
+            <div className="relative h-64 md:h-auto">
               <img src={gion} alt="Traditional Japanese ryokan interior with warm light" className="w-full h-full object-cover" loading="lazy" width={1024} height={1024} />
               <div className="absolute bottom-4 left-4 right-4 glass-card p-3 text-xs">
                 <div className="text-muted-foreground uppercase tracking-wider text-[10px]">Current destination</div>
