@@ -7,6 +7,7 @@ import { useSessionStorage } from "@/hooks/useSessionStorage";
 import remarkGfm from "remark-gfm";
 import gion from "@/assets/gion.jpg";
 import { ScrollVideo } from "@/components/ScrollVideo";
+import mascot from "../../mascot.png";
 
 
 const ReactMarkdown = lazy(() => import("react-markdown"));
@@ -199,6 +200,31 @@ function Home() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, chatLoading]);
+
+  const featuresRef = useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!featuresRef.current) return;
+      const rect = featuresRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+
+      // Start calculating when the section's top enters the viewport
+      // Complete calculation after a scroll trigger distance of 500px
+      const scrollTriggerDistance = 500;
+      const scrolledDistance = viewportHeight - rect.top;
+
+      let progress = scrolledDistance / scrollTriggerDistance;
+      progress = Math.max(0, Math.min(1, progress));
+      setScrollProgress(progress);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll(); // Initial run
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleToggleRecording = async () => {
     if (isRecording) {
@@ -532,19 +558,48 @@ function Home() {
         </h2>
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 mt-8 grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-        {features.map((f) => (
-          <Link key={f.to} to={f.to} className="glass-card p-7 group hover:translate-y-[-2px] transition-transform">
-            <div className="size-10 rounded-lg bg-cream border border-border flex items-center justify-center">
-              <f.icon className="size-5 text-ink" />
-            </div>
-            <h3 className="font-serif text-2xl text-ink mt-5">{f.title}</h3>
-            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{f.desc}</p>
-            <div className="mt-6 text-sm text-ink flex items-center gap-1 group-hover:gap-2 transition-all">
-              {f.cta} <ArrowRight className="size-4" />
-            </div>
-          </Link>
-        ))}
+      <section ref={featuresRef} className="max-w-6xl mx-auto px-6 mt-8 relative">
+        {/* Walking Dora Mascot */}
+        <div
+          className="absolute -top-16 pointer-events-none z-20 w-16 h-16 md:w-20 md:h-20 transition-all duration-75 ease-out"
+          style={{
+            left: `calc(${scrollProgress * 100}% - 40px)`,
+            transform: `translate(-50%, ${Math.sin(scrollProgress * 30) * 8}px) rotate(${Math.sin(scrollProgress * 20) * 12}deg)`,
+            opacity: scrollProgress > 0.05 && scrollProgress < 0.95 ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+          }}
+        >
+          <img src="/boots.png" alt="Walking Boots" className="w-full h-full object-contain" />
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {features.map((f, index) => {
+            // Calculate visibility threshold for each card
+            const threshold = 0.12 + index * 0.20;
+            const isVisible = scrollProgress > threshold;
+
+            return (
+              <Link
+                key={f.to}
+                to={f.to}
+                className={`glass-card p-7 group hover:translate-y-[-4px] transition-all duration-500 ease-out transform ${
+                  isVisible
+                    ? "opacity-100 translate-y-0 scale-100"
+                    : "opacity-0 translate-y-8 scale-95 pointer-events-none"
+                }`}
+              >
+                <div className="size-10 rounded-lg bg-cream border border-border flex items-center justify-center">
+                  <f.icon className="size-5 text-ink" />
+                </div>
+                <h3 className="font-serif text-2xl text-ink mt-5">{f.title}</h3>
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{f.desc}</p>
+                <div className="mt-6 text-sm text-ink flex items-center gap-1 group-hover:gap-2 transition-all">
+                  {f.cta} <ArrowRight className="size-4" />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </section>
 
       {/* Personalised recommendations */}
