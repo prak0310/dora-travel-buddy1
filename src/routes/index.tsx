@@ -275,7 +275,13 @@ function Home() {
         </p>
 
         {/* Chat Interface */}
-        <div className="glass-card max-w-2xl mx-auto mt-10 overflow-hidden">
+        <div
+        className={`glass-card max-w-2xl mx-auto mt-10 overflow-hidden transition-all duration-300 ${
+        chatOpen
+        ? "border border-ink/40 shadow-xl shadow-ink/20"
+        : "border border-border/50"
+        }`}
+        > 
         {/* Messages Area */}
 {chatOpen && (
   <div
