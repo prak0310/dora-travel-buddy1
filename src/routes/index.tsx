@@ -164,6 +164,7 @@ function Home() {
   }, [username]);
 
   const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [chatOpen, setChatOpen] = useState(false);
   const [input, setInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -260,72 +261,119 @@ function Home() {
 
         {/* Chat Interface */}
         <div className="glass-card max-w-2xl mx-auto mt-10 overflow-hidden">
-          {/* Messages Area */}
-          {messages.length > 0 && (
-            <div
-              ref={scrollRef}
-              className="max-h-[400px] overflow-y-auto p-5 space-y-4 text-left"
-              style={{ scrollBehavior: "smooth" }}
-            >
-              {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                  style={{ animation: "fadeSlideIn 0.3s ease-out" }}
+        {/* Messages Area */}
+{chatOpen && (
+  <div
+    ref={scrollRef}
+    className="max-h-[400px] overflow-y-auto p-5 space-y-4 text-left border-b border-border/40 animate-in fade-in slide-in-from-bottom-4 duration-300"
+    style={{ scrollBehavior: "smooth" }}
+  >
+    {messages.length === 0 && (
+      <div className="text-center py-12">
+        <Bot className="size-8 mx-auto mb-3 text-muted-foreground" />
+        <h3 className="font-serif text-xl text-ink">
+          Dora AI
+        </h3>
+        <p className="text-sm text-muted-foreground mt-2">
+          Ask me about food, customs, transit, local slang, or anything travel-related.
+        </p>
+      </div>
+    )}
+
+    {messages.map((msg, i) => (
+      <div
+        key={i}
+        className={`flex gap-3 ${
+          msg.role === "user" ? "justify-end" : "justify-start"
+        }`}
+        style={{ animation: "fadeSlideIn 0.3s ease-out" }}
+      >
+        {msg.role === "assistant" && (
+          <div className="size-7 rounded-full bg-cream border border-border flex-shrink-0 flex items-center justify-center mt-1">
+            <Bot className="size-3.5 text-ink" />
+          </div>
+        )}
+
+        <div
+          className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+            msg.role === "user"
+              ? "bg-ink text-white rounded-br-md"
+              : "bg-cream/60 text-ink rounded-bl-md border border-border/50"
+          }`}
+        >
+          {msg.role === "assistant" && actionBadge(msg.actionType)}
+
+          {msg.role === "assistant" ? (
+            <div className="food-prose">
+              <Suspense
+                fallback={<Loader2 className="size-3 animate-spin" />}
+              >
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={markdownComponents}
                 >
-                  {msg.role === "assistant" && (
-                    <div className="size-7 rounded-full bg-cream border border-border flex-shrink-0 flex items-center justify-center mt-1">
-                      <Bot className="size-3.5 text-ink" />
-                    </div>
-                  )}
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                      msg.role === "user"
-                        ? "bg-ink text-white rounded-br-md"
-                        : "bg-cream/60 text-ink rounded-bl-md border border-border/50"
-                    }`}
-                  >
-                    {msg.role === "assistant" && actionBadge(msg.actionType)}
-                    {msg.role === "assistant" ? (
-                      <div className="food-prose">
-                        <Suspense fallback={<Loader2 className="size-3 animate-spin" />}>
-                          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{msg.content}</ReactMarkdown>
-                        </Suspense>
-                      </div>
-                    ) : (
-                      <p>{msg.content}</p>
-                    )}
-                  </div>
-                  {msg.role === "user" && (
-                    <div className="size-7 rounded-full bg-ink text-white flex-shrink-0 flex items-center justify-center mt-1 text-xs font-medium">
-                      {(username || "U")[0].toUpperCase()}
-                    </div>
-                  )}
-                </div>
-              ))}
-              {chatLoading && (
-                <div className="flex gap-3 justify-start" style={{ animation: "fadeSlideIn 0.3s ease-out" }}>
-                  <div className="size-7 rounded-full bg-cream border border-border flex-shrink-0 flex items-center justify-center mt-1">
-                    <Bot className="size-3.5 text-ink" />
-                  </div>
-                  <div className="bg-cream/60 text-ink rounded-2xl rounded-bl-md border border-border/50 px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="size-1.5 rounded-full bg-ink/40 animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <span className="size-1.5 rounded-full bg-ink/40 animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <span className="size-1.5 rounded-full bg-ink/40 animate-bounce" style={{ animationDelay: "300ms" }} />
-                    </div>
-                  </div>
-                </div>
-              )}
+                  {msg.content}
+                </ReactMarkdown>
+              </Suspense>
             </div>
+          ) : (
+            <p>{msg.content}</p>
           )}
+        </div>
+
+        {msg.role === "user" && (
+          <div className="size-7 rounded-full bg-ink text-white flex-shrink-0 flex items-center justify-center mt-1 text-xs font-medium">
+            {(username || "U")[0].toUpperCase()}
+          </div>
+        )}
+      </div>
+    ))}
+
+    {chatLoading && (
+      <div
+        className="flex gap-3 justify-start"
+        style={{ animation: "fadeSlideIn 0.3s ease-out" }}
+      >
+        <div className="size-7 rounded-full bg-cream border border-border flex-shrink-0 flex items-center justify-center mt-1">
+          <Bot className="size-3.5 text-ink" />
+        </div>
+
+        <div className="bg-cream/60 text-ink rounded-2xl rounded-bl-md border border-border/50 px-4 py-3">
+          <div className="flex items-center gap-1.5">
+            <span
+              className="size-1.5 rounded-full bg-ink/40 animate-bounce"
+              style={{ animationDelay: "0ms" }}
+            />
+            <span
+              className="size-1.5 rounded-full bg-ink/40 animate-bounce"
+              style={{ animationDelay: "150ms" }}
+            />
+            <span
+              className="size-1.5 rounded-full bg-ink/40 animate-bounce"
+              style={{ animationDelay: "300ms" }}
+            />
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)}
+
+
 
           {/* Input Bar */}
           <div className={`flex items-center p-2 ${messages.length > 0 ? "border-t border-border/40" : ""}`}>
             <input
               ref={inputRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onFocus={() => setChatOpen(true)}
+              onChange={(e) => {
+                setInput(e.target.value);
+
+                if (e.target.value.length > 0) {
+                setChatOpen(true);
+                }
+            }}
               onKeyDown={handleKeyDown}
               placeholder="Ask Dora anything — a dish, a station, a custom…"
               className="flex-1 bg-transparent outline-none py-3 px-4 text-sm"
