@@ -9,22 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TranslateRouteImport } from './routes/translate'
 import { Route as TransitRouteImport } from './routes/transit'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FoodRouteImport } from './routes/food'
 import { Route as FactCheckRouteImport } from './routes/fact-check'
 import { Route as CulturalRouteImport } from './routes/cultural'
 import { Route as IndexRouteImport } from './routes/index'
 
-const TranslateRoute = TranslateRouteImport.update({
-  id: '/translate',
-  path: '/translate',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TransitRoute = TransitRouteImport.update({
   id: '/transit',
   path: '/transit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -59,8 +59,8 @@ export interface FileRoutesByFullPath {
   '/fact-check': typeof FactCheckRoute
   '/food': typeof FoodRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/transit': typeof TransitRoute
-  '/translate': typeof TranslateRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -68,8 +68,8 @@ export interface FileRoutesByTo {
   '/fact-check': typeof FactCheckRoute
   '/food': typeof FoodRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/transit': typeof TransitRoute
-  '/translate': typeof TranslateRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -78,8 +78,8 @@ export interface FileRoutesById {
   '/fact-check': typeof FactCheckRoute
   '/food': typeof FoodRoute
   '/login': typeof LoginRoute
+  '/settings': typeof SettingsRoute
   '/transit': typeof TransitRoute
-  '/translate': typeof TranslateRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -89,10 +89,17 @@ export interface FileRouteTypes {
     | '/fact-check'
     | '/food'
     | '/login'
+    | '/settings'
     | '/transit'
-    | '/translate'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cultural' | '/fact-check' | '/food' | '/login' | '/transit' | '/translate'
+  to:
+    | '/'
+    | '/cultural'
+    | '/fact-check'
+    | '/food'
+    | '/login'
+    | '/settings'
+    | '/transit'
   id:
     | '__root__'
     | '/'
@@ -100,8 +107,8 @@ export interface FileRouteTypes {
     | '/fact-check'
     | '/food'
     | '/login'
+    | '/settings'
     | '/transit'
-    | '/translate'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -110,19 +117,12 @@ export interface RootRouteChildren {
   FactCheckRoute: typeof FactCheckRoute
   FoodRoute: typeof FoodRoute
   LoginRoute: typeof LoginRoute
+  SettingsRoute: typeof SettingsRoute
   TransitRoute: typeof TransitRoute
-  TranslateRoute: typeof TranslateRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/translate': {
-      id: '/translate'
-      path: '/translate'
-      fullPath: '/translate'
-      preLoaderRoute: typeof TranslateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/transit': {
       id: '/transit'
       path: '/transit'
@@ -130,11 +130,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TransitRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/food': {
-      id: '/food'
-      path: '/food'
-      fullPath: '/food'
-      preLoaderRoute: typeof FoodRouteImport
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -142,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/food': {
+      id: '/food'
+      path: '/food'
+      fullPath: '/food'
+      preLoaderRoute: typeof FoodRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fact-check': {
@@ -174,8 +181,8 @@ const rootRouteChildren: RootRouteChildren = {
   FactCheckRoute: FactCheckRoute,
   FoodRoute: FoodRoute,
   LoginRoute: LoginRoute,
+  SettingsRoute: SettingsRoute,
   TransitRoute: TransitRoute,
-  TranslateRoute: TranslateRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -5,11 +5,11 @@ import { useUser } from "@/lib/UserContext";
 
 const nav = [
   { to: "/", label: "Explore" },
-  { to: "/translate", label: "Translate" },
   { to: "/fact-check", label: "Fact-Check" },
   { to: "/transit", label: "Transit" },
   { to: "/food", label: "Food" },
   { to: "/cultural", label: "Cultural Guide" },
+  { to: "/settings", label: "Settings" },
 ];
 
 export function AppShell({ children, active }: { children: ReactNode; active?: string }) {

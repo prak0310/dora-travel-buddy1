@@ -1,12 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { useState, useRef, lazy, Suspense, memo } from "react";
-import { Loader2, MapPin, Search, Camera, UploadCloud, Download } from "lucide-react";
+import { Loader2, MapPin, Search, Camera, UploadCloud, Download, ExternalLink } from "lucide-react";
 import html2pdf from "html2pdf.js";
+import remarkGfm from "remark-gfm";
 
-// Lazy-load the heavy react-markdown bundle (pulls in remark + micromark)
-// so it never blocks the main thread during page interaction.
+// Lazy-load the heavy react-markdown bundle
 const ReactMarkdown = lazy(() => import("react-markdown"));
+
+/** Custom components for ReactMarkdown rendering */
+const markdownComponents = {
+  a: ({ href, children, ...props }: any) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+      {children}
+      <ExternalLink className="inline-block size-3 ml-0.5 align-baseline opacity-60" />
+    </a>
+  ),
+};
 
 export const Route = createFileRoute("/food")({
   head: () => ({
@@ -22,6 +32,37 @@ interface AgentResponse {
   mode: string;
   primary_headline: string;
   structured_recommendations: string;
+}
+
+/** Strip LLM reasoning/thinking artifacts that sometimes leak into the response */
+function cleanResponse(raw: string): string {
+  let text = raw;
+
+  // Remove <reasoning>...</reasoning> blocks (greedy, handles multi-line)
+  text = text.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, "");
+
+  // If there's an orphaned </reasoning> tag, discard everything before (and including) it
+  const idx = text.lastIndexOf("</reasoning>");
+  if (idx !== -1) {
+    text = text.substring(idx + "</reasoning>".length);
+  }
+
+  // Also strip orphaned <reasoning> opening tag if the close was already removed
+  text = text.replace(/<\/?reasoning>/gi, "");
+
+  // Remove lines that are purely URL-encoded noise (90%+ percent-encoded chars)
+  text = text
+    .split("\n")
+    .filter((line) => {
+      const pctMatches = line.match(/%[0-9A-Fa-f]{2}/g);
+      if (pctMatches && pctMatches.length > 10 && (pctMatches.length * 3) / line.length > 0.4) {
+        return false; // line is mostly URL-encoded junk
+      }
+      return true;
+    })
+    .join("\n");
+
+  return text.trim();
 }
 
 function Food() {
@@ -326,14 +367,72 @@ const FoodContent = memo(function FoodContent() {
                   .replace(/\s+/g, "_")
                   .toLowerCase()
                   || "dora_food_guide";
+                // Inject an override stylesheet to strip oklch from the live DOM before html2canvas reads it
+                const overrideStyle = document.createElement("style");
+                overrideStyle.id = "pdf-override";
+                overrideStyle.textContent = `
+                  #pdf-content .glass-card {
+                    background-color: #ffffff !important;
+                    border: 1px solid #e5e7eb !important;
+                    box-shadow: none !important;
+                  }
+                  #pdf-content .food-prose,
+                  #pdf-content .food-prose * {
+                    color: #1f2937 !important;
+                    border-color: #e5e7eb !important;
+                  }
+                  #pdf-content .food-prose code,
+                  #pdf-content .food-prose pre,
+                  #pdf-content .food-prose th,
+                  #pdf-content .food-prose blockquote {
+                    background-color: #f3f4f6 !important;
+                  }
+                `;
+                document.head.appendChild(overrideStyle);
+
                 const opt = {
                   margin: 10,
                   filename: `dora_${safeName}.pdf`,
                   image: { type: "jpeg", quality: 0.98 },
-                  html2canvas: { scale: 2 },
+                  html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    onclone: (clonedDoc: Document) => {
+                      // Remove stylesheets in the clone to prevent parsing errors
+                      clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
+                      
+                      const safeStyle = clonedDoc.createElement("style");
+                      safeStyle.textContent = `
+                        * { box-sizing: border-box; margin: 0; padding: 0; }
+                        body { background: #ffffff; color: #1f2937; font-family: Georgia, 'Times New Roman', serif; line-height: 1.6; }
+                        #pdf-content { background: #ffffff; color: #1f2937; padding: 16px; }
+                        .glass-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; box-shadow: none; }
+                        h1, h2, h3, h4, h5, h6 { color: #111827; margin: 1em 0 0.5em; font-family: Georgia, 'Times New Roman', serif; }
+                        h1 { font-size: 1.8em; } h2 { font-size: 1.5em; } h3 { font-size: 1.25em; }
+                        p { margin: 0.5em 0; }
+                        ul, ol { padding-left: 1.5em; margin: 0.5em 0; }
+                        li { margin: 0.25em 0; }
+                        strong { font-weight: bold; } em { font-style: italic; }
+                        a { color: #2563eb; text-decoration: underline; }
+                        hr { border: none; border-top: 1px solid #e5e7eb; margin: 1em 0; }
+                        img { max-width: 100%; height: auto; display: block; margin: 0 auto; border-radius: 8px; }
+                        table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
+                        th, td { border: 1px solid #d1d5db; padding: 8px; text-align: left; }
+                        th { background: #f3f4f6; font-weight: bold; }
+                        code { background: #f3f4f6; padding: 2px 4px; border-radius: 3px; font-size: 0.9em; }
+                        pre { background: #f3f4f6; padding: 12px; border-radius: 6px; overflow-x: auto; }
+                        blockquote { border-left: 3px solid #d1d5db; padding-left: 12px; color: #6b7280; margin: 0.5em 0; background: #f3f4f6; }
+                        .mb-6 { margin-bottom: 24px; }
+                        .food-prose { color: #1f2937; }
+                      `;
+                      clonedDoc.head.appendChild(safeStyle);
+                    }
+                  },
                   jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
                 };
-                html2pdf().set(opt).from(element).save();
+                html2pdf().set(opt).from(element).save().finally(() => {
+                  document.head.removeChild(overrideStyle);
+                });
               }}
               className="btn-ghost flex items-center gap-2 text-sm"
             >
@@ -350,10 +449,10 @@ const FoodContent = memo(function FoodContent() {
                 />
               </div>
             )}
-            <div className="glass-card p-8" style={{ background: '#fefefe', backdropFilter: 'none' }}>
+            <div className="glass-card p-8" style={{ background: '#ffffff', backdropFilter: 'none', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
               <div className="food-prose">
                 <Suspense fallback={<div className="flex items-center gap-2 text-muted-foreground text-sm"><Loader2 className="size-4 animate-spin" /> Rendering results…</div>}>
-                  <ReactMarkdown>{result.structured_recommendations}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{cleanResponse(result.structured_recommendations)}</ReactMarkdown>
                 </Suspense>
               </div>
             </div>

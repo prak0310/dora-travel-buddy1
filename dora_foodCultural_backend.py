@@ -94,7 +94,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# This tells the browser: "Yes, the frontend is allowed to talk to me!"
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # For production, you'd put your exact frontend URL here
@@ -154,6 +153,18 @@ class FoodAgentResponse(BaseModel):
     primary_headline: str
     structured_recommendations: str  # Markdown text containing context, translation, and custom recommendations
 
+class ChatMessage(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+
+class ChatRequest(BaseModel):
+    message: str
+    history: List[ChatMessage] = []  # Allows the frontend to pass conversation memory
+    location: str = "Unknown"
+
+class ChatResponse(BaseModel):
+    action_type: str  # "RESEARCH", "ROUTING", or "GENERAL"
+    reply: str
 
 # ==========================================
 # 3. Prompt Engineering & External APIs
@@ -169,12 +180,12 @@ def generate_reka_prompt(places_data: List[dict], user_prefs: ExploreRequest) ->
     Here are nearby restaurants retrieved from Google Places:
     {json.dumps(places_data, indent=2)}
 
-    Analyze these restaurants. Select the best 5 that fit the user's criteria, rank them based on their closeness to the user's criteria.
+    Analyze these restaurants. Select the best **5** that fit the user's criteria, rank them based on their closeness to the user's criteria.
     For each selected restaurant, provide:
-    1. A reason for recommending it based on their preferences.
-    2. 2-3 specific local dishes they should try.
-    3. For each dish, explain any unfamiliar local ingredients.
-    4. For each dish, explicitly verify that it complies with their dietary restrictions.
+    1. A reason for recommending it based on their preferences for EACH restaurant.
+    2. 2-3 specific local dishes they should try from EACH restaurant.
+    3. For each dish in 2, explain any unfamiliar local ingredients.
+    4. For each dish in 2, explicitly verify that it complies with their dietary restrictions.
     5. Provide cultural context or local etiquette related to ordering or eating these dishes.
 
     Return the output STRICTLY as a clean Markdown list of restaurants. For each restaurant, use this structure exactly:
@@ -329,7 +340,8 @@ async def analyze_scene_with_reka(image_input: str, location: str) -> dict:
     You are an expert visual extractor. The user is in {location}. Look at this image:
     1. Transcribe ALL visible text perfectly (especially characters on banners, plaques, or signs).
     2. Describe the exact distinct physical features, shapes, and materials of the statue, monument, or scene.
-    Do not guess the historical context yet, just tell me exactly what is physically there and what the text says.
+    3. Be as detailed as possible (do NOT miss any important features that gives away its location).
+    Do not guess the historical context yet, just tell me exactly what is physically there and what the text says. 
     """
 
     # Wrap the synchronous Google call in an executor so it runs concurrently with Reka
@@ -355,54 +367,72 @@ async def analyze_scene_with_reka(image_input: str, location: str) -> dict:
     print(f"\n--- AGENT 1 (GOOGLE DETECTED): {landmark_name} ---")
     print(f"--- AGENT 2 (REKA OCR EVIDENCE):\n{visual_evidence}\n---------------------------------------\n")
 
+  
     # ==========================================
-    # STEP 2: THE "BRAIN" (Factual Grounding)
+    # STEP 2: THE "BRAIN" (Structured Markdown)
     # ==========================================
     research_prompt = f"""
-    You are an expert local historian, cultural guide, and translator. 
-    A user traveling in {location} is looking at a scene.
-    Google Vision has factually identified this exact location as: "{landmark_name}".
-    The user's camera shows this exact text and imagery: "{visual_evidence}".
-    
-    Using the verified location name and visual evidence, provide a highly accurate cultural guide. 
-    
-    Return your response strictly as a FLAT JSON object. The values MUST be simple text strings. DO NOT use nested objects or arrays. Use these exact keys:
-    - "translation_and_context": State the EXACT name of the monument/place. Explain the history and cultural significance of {landmark_name}. Translate any text found in the visual evidence.
-    - "customs_and_etiquette": Local customs, behavioral expectations, and strict taboos relevant to this SPECIFIC place (e.g., if it's a solemn memorial, mention silence and dress codes). Be highly sensitive to the tone of the location.
-    - "slang_phrase": ONE short, respectful, and highly relevant local phrase or greeting to use here (in the local language). Provide the phonetic respelling in English for tourists to read alongside the audio.
-    - "slang_explanation": What that phrase means in English.
-    
-    Descriptions must be direct, concise and readable on-the-go. 
+    You are a witty, knowledgeable local guide speaking DIRECTLY to a traveller standing right in front of this place.
+    A traveller in {location} is looking at: "{landmark_name}" (verified by Google Vision).
+    Visual evidence from their camera: "{visual_evidence}".
+
+    Speak to them in second person ("you", "your"). Be vivid and engaging — like a knowledgeable friend whispering in their ear, not a textbook.
+    For the site description: lead with the most surprising or emotionally resonant fact first, then layer in history and significance. Keep sentences short and punchy — this is read on a phone screen while standing outside.
+    Do NOT reference your own decision-making. Do NOT say things like "based on the visual evidence" or "this appears to be". State facts confidently.
+
+    CRITICAL INSTRUCTION: DO NOT WRITE JSON. You must format your response EXACTLY as a Markdown document using these four specific headers:
+
+    ### Translation
+    Open with a punchy hook about {landmark_name}. Give the traveller a vivid 3–4 sentence picture: what happened here, who built it and why, what it means to locals today. Translate any visible text.
+
+    ### Customs
+    Tell the traveller exactly how to behave HERE. Mention one thing most tourists get wrong at this specific place.
+
+    ### Slang Phrase
+    [Write ONLY the short local phrase here, with phonetic respelling. Do not write anything else.]
+
+    ### Slang Explanation
+    What the phrase means in English and exactly when/how to use it here.
     """
 
+    # We use reka-flash-research for deep cultural context, with NO json response format
     research_response = await reka_client.chat.completions.create(
-        model="reka-flash",
+        model="reka-flash-research",
         messages=[
             {"role": "user", "content": research_prompt}
         ]
     )
     
     raw_content = research_response.choices[0].message.content
+    print(f"--- RAW AGENT OUTPUT ---\n{raw_content}\n------------------------")
     
     # ==========================================
-    # STEP 3: BULLETPROOF REGEX & FLATTENER PARSER
+    # STEP 3: BULLETPROOF MARKDOWN PARSER
     # ==========================================
     try:
-        json_match = re.search(r'\{.*\}', raw_content, re.DOTALL)
-        clean_json_string = json_match.group(0) if json_match else raw_content
-        parsed_data = json.loads(clean_json_string)
+        # This function looks for "### Translation", grabs the text below it, and stops at the next "###"
+        def extract_markdown_section(header_name: str, text: str) -> str:
+            pattern = rf"###\s*{header_name}[:\s]*(.*?)(?=###|$)"
+            match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
+            return match.group(1).strip() if match else "Information not provided."
 
-        for key in ["translation_and_context", "customs_and_etiquette", "slang_phrase", "slang_explanation"]:
-            if key in parsed_data and isinstance(parsed_data[key], dict):
-                parsed_data[key] = " ".join([str(v) for v in parsed_data[key].values()])
-            elif key in parsed_data and isinstance(parsed_data[key], list):
-                parsed_data[key] = " ".join([str(v) for v in parsed_data[key]])
+        parsed_data = {
+            "translation_and_context": extract_markdown_section("Translation", raw_content),
+            "customs_and_etiquette": extract_markdown_section("Customs", raw_content),
+            "slang_phrase": extract_markdown_section("Slang Phrase", raw_content),
+            "slang_explanation": extract_markdown_section("Slang Explanation", raw_content)
+        }
+
+        # Safety Net: If the AI completely forgets to use headers, don't crash. 
+        # Just dump all the text into the first box so the user can still read it on the frontend.
+        if parsed_data["translation_and_context"] == "Information not provided.":
+            parsed_data["translation_and_context"] = raw_content
 
         return parsed_data
 
-    except json.JSONDecodeError:
-        print(f"Failed to parse Agentic output: {raw_content}")
-        raise HTTPException(status_code=500, detail="Agentic AI failed to output valid JSON.")
+    except Exception as e:
+        print(f"Failed to parse Agentic Markdown: {raw_content}")
+        raise HTTPException(status_code=500, detail="Backend failed to process Markdown text.")
 
 # ==========================================
 # 4. Unified Core Agent Flow (API Routes)
@@ -410,10 +440,6 @@ async def analyze_scene_with_reka(image_input: str, location: str) -> dict:
 
 @app.post("/api/v1/analyze-scene", response_model=SceneResponse)
 async def process_scene(req: SceneRequest):
-    print("IMAGE START:")
-    print(req.image_base64[:200])
-    print("IMAGE END")
-    """Analyzes an inline base64 image using Reka Chat (reka-flash)."""
     try:
         reka_data = await analyze_scene_with_reka(req.image_base64, req.location)
         audio_b64 = generate_free_audio(reka_data.get("slang_phrase", ""), lang_code='en')
@@ -428,6 +454,7 @@ async def process_scene(req: SceneRequest):
         # If an unhandled exception bubbles up, it logs out the full text for testing
         print(f"ROUTE CRASHED. Stack trace detail: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Server Exception: {str(type(e).__name__)} - {str(e)}")
+
 
 
 @app.post(
@@ -631,46 +658,122 @@ async def process_camera_upload(
         # STEP 2: CONTEXTUAL ROUTING & ENRICHMENT
         # ==========================================
         if img_type == "MENU_OR_DISH":
-            # Flow A: The user is looking directly at a menu. Translate and match to diet.
             final_prompt = f"""
-            You are a menu interpreter. A traveler has uploaded a menu image.
-            Here is the raw extracted/translated text content found on the menu:
+            You are a menu interpreter and dietary safety advisor speaking directly to a traveller.
+            A traveller has uploaded a menu image. Here is the extracted text from that menu:
             "{extracted_text}"
 
-            Cross-reference this menu against the user's constraints:
-            - Dietary Restrictions: {', '.join(dietary) if dietary else 'None'}
-            - Target Budget: {budget}
-
-            Tasks:
-            1. Render a clean English translation map of the menu options.
-            2. Flags safe items that match their dietary criteria. Explicitly warn against items containing allergens or restricted ingredients.
-            3. Recommend the top 3 standout choices on this menu tailored to them.
-
-            Format your response in structured Markdown text.
-            """
-            headline = "Menu Live-Translation & Dietary Safety Check"
-            
-        else:
-            # Flow B: The user is standing outside a restaurant. Find what it is, then pull recommendations.
-            nearby_context = await fetch_nearby_restaurants(lat=lat, lng=lng, radius=200, query=extracted_text)
-            
-            final_prompt = f"""
-            You are a local culinary tracker. The traveler took a photo of a restaurant exterior/signage.
-            Signage Text Extracted: "{extracted_text}"
-            Potential physical matches near their GPS location: {json.dumps(nearby_context, indent=2)}
-            
-            Traveler Profile:
-            - Dietary Constraints: {', '.join(dietary) if dietary else 'None'}
+            Traveller profile:
+            - Dietary restrictions: {', '.join(dietary) if dietary else 'None'}
             - Budget: {budget}
 
-            Tasks:
-            1. Identify which restaurant they are standing in front of using the signage text and nearby context matches. Translate the name.
-            2. Provide an insider culinary summary of this specific restaurant.
-            3. Suggest exactly what dishes they should order here that align perfectly with their dietary profile. Include an explanation of local food concepts.
+            You MUST produce ALL THREE sections below in full, in order.
+            Do NOT skip ahead. Do NOT summarise or truncate the translation table.
+            Complete each section entirely before starting the next.
 
-            Format your response in structured Markdown text.
+            ---
+
+            ## 📋 FULL MENU TRANSLATION
+
+            **[English translated name] ([original script name])** — [local currency price, convert to {budget} currency if possible]
+            Ingredients: [list key ingredients; write "not listed" if unavailable]
+
+            The English translation is the PRIMARY label. The original-language name goes in parentheses after it.
+            Example format: **Pork Bone Broth Ramen (白丸の元祖)** — ¥700
+            Never use the original script as the main label.
+
+            ---
+
+            ## ⚠️ DIETARY SAFETY FLAGS
+
+            Go through EACH item listed above and apply one of these labels:
+            ✅ SAFE — meets all dietary restrictions
+            ❌ AVOID — contains a restricted ingredient (state which one)
+            ⚠️ CHECK — may contain restricted ingredients; ask staff to confirm
+
+            Format: **[Dish name]** → [label] [reason if AVOID or CHECK]
+
+            Do not skip any items from the section above.
+
+            ---
+
+            ## 🍽️ PERSONALISED PICKS
+
+            Now — and only after completing the two sections above — recommend AT LEAST 3 dishes.
+            Choose only from items marked ✅ SAFE above.
+            For each pick, include:
+            - Why it suits the traveller's dietary profile specifically
+            - What makes it worth ordering (taste, cultural significance, or value)
+            - The price
+
+            Format each as: **[English dish name]** — [price]
+            Always use the English name. Never revert to the original script as the label.
+            [Your rationale in 2–3 sentences.]
+            
+            Format in structured markdown!
             """
-            headline = "Restaurant Storefront Identity & Custom Dish Selection Guide"
+            headline = "Menu Live-Translation & Dietary Safety Check"
+
+        else:
+            nearby_context = await fetch_nearby_restaurants(lat=lat, lng=lng, radius=200, query=extracted_text)
+
+            final_prompt = f"""
+            You are a local culinary guide speaking directly to a traveller standing outside a restaurant.
+            Signage text extracted from their photo: "{extracted_text}"
+            Nearby restaurant matches (GPS): {json.dumps(nearby_context, indent=2)}
+
+            Traveller profile:
+            - Dietary restrictions: {', '.join(dietary) if dietary else 'None'}
+            - Budget: {budget}
+
+            You MUST produce ALL FOUR sections below in full, in order.
+            Do NOT skip or merge sections. Complete each entirely before starting the next.
+
+            ---
+
+            ## 📍 RESTAURANT IDENTITY
+
+            Using the signage text and GPS matches, identify which restaurant the traveller is standing in front of.
+            State its full translated name, cuisine type, and price tier.
+            If uncertain between two matches, name both and explain which is more likely and why.
+            Do not hedge with vague language — commit to an identification.
+
+            ---
+
+            ## 🏮 INSIDER GUIDE
+
+            Give the traveller a vivid 3–4 sentence insider summary of this specific restaurant:
+            what it is known for locally, its atmosphere, and any local reputation or history worth knowing.
+            Write for someone standing outside deciding whether to walk in.
+
+            ---
+
+            ## 🍜 FULL MENU OVERVIEW
+
+            List the main dishes and signature items served here. Use any available data from the GPS context.
+            For each item include: name, brief description, key ingredients, and approximate price if known.
+            If the full menu is unavailable, list what is known and note the gap — do not skip this section.
+
+            Format:
+            **[Dish name]** — [price if known]
+            [Brief description and key ingredients]
+
+            ---
+
+            ## 🍽️ PERSONALISED PICKS
+
+            From the items listed above, recommend AT LEAST 3 dishes that match the traveller's dietary profile.
+            Choose only items compatible with: {', '.join(dietary) if dietary else 'no restrictions'}.
+            For each pick include:
+            - Why it suits their dietary profile specifically
+            - A local food concept or cultural note that makes it meaningful to try here
+            - Estimated price
+
+            Format each as: **[Dish name]** — [price]
+            [Your rationale in 2–3 sentences.]
+            Format in structured markdown!
+            """
+            headline = "Restaurant Identity & Custom Dish Selection Guide"
 
         # Final generation execution
         final_enrichment_resp = await reka_client.chat.completions.create(
@@ -678,6 +781,8 @@ async def process_camera_upload(
             messages=[{"role": "user", "content": final_prompt}]
         )
         print("REKA RESPONSE RETURNED")
+        
+
 
         return FoodAgentResponse(
             mode=img_type.lower(),
@@ -686,6 +791,111 @@ async def process_camera_upload(
         )
 
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@app.post("/api/v1/chat", response_model=ChatResponse)
+async def general_chat(req: ChatRequest):
+    """General Chat Route with Agentic Intent Sorting."""
+    try:
+        # STEP 1: The Dispatcher (reka-flash)
+        dispatcher_prompt = f"""
+        Analyze the following user message: "{req.message}"
+        
+        Classify the intent into exactly ONE of these categories:
+        - "RESEARCH": The user is asking a deep follow-up question about a specific menu item, local slang, cultural history, or place.
+        - "ROUTING": The user is asking how to do something the app has a specific feature for (e.g., "translate this", "find me food", "what is this building").
+        - "GENERAL": A basic greeting or simple travel question.
+         
+        Mapping dora's features (tab names) to its functionality: 
+        Fact-Check: pulls latest trends from social media and provides factually correct information regarding attractions, food and accomodation. This can be about underrated places to visit, which places are worth it, etc.
+        Transit: personalised travel route, breaking down how to navigate from point A to B in an easy manner, with a map view.
+        Food: users can upload pictures of a menu/restaurant front to obtain food recommendations based on their budget and dietary requirements. They can also use their location to get nearby restaurants to try. 
+        Cultural: users can upload pictures of where they are at to obtain cultural and historical context, etiquettes, local slang and how to pronounce them to understand where they are visiting. They can also upload pictures of signs/banners/posters to obtain translation + cultural context.
+        
+        Using the above mapping, route travellers to the necessary tab (look out for any differently phrased queries from travellers that have the same meaning): 
+        If asked about latest trends in food/places to visit/underrated places to visit from social media (anything similar), guide them to the 'Fact-Check' tab.
+        If asked about how to navigate from one place to the next, guide them to the 'Transit' tab.
+        If asked about what to try at a restaurant/places to eat near them or translate a menu, guide them to the 'Food' tab.
+        If asked about a particular place they are standing (but don't know the name hence a pic might be required for you to answer them correctly) or translate a sign/banner/flag, guide them to the 'Cultural' tab.
+
+        Return a FLAT JSON object with two keys: 
+        1. "category": The exact category string above.
+        2. "routing_advice": If the category is ROUTING, write a witty, friendly 1-sentence message telling them to use the specific tab based on the mapping above (and the logic below). Otherwise, leave empty.
+        """
+
+        dispatch_resp = await reka_client.chat.completions.create(
+            model="reka-flash",
+            messages=[{"role": "user", "content": dispatcher_prompt}]
+        )
+        
+        raw_meta = dispatch_resp.choices[0].message.content
+        json_match = re.search(r'\{.*\}', raw_meta, re.DOTALL)
+        meta_data = json.loads(json_match.group(0)) if json_match else {"category": "GENERAL", "routing_advice": ""}
+        
+        category = meta_data.get("category", "GENERAL")
+        
+        print(f"Category = {category}")
+
+        
+        # STEP 2: The Resolver (Branching Logic)
+        if category == "ROUTING":
+            # Fast exit: Just guide the user to the right frontend feature
+            return ChatResponse(
+                action_type=category,
+                reply=meta_data.get("routing_advice", "I can help with that! Please use the Camera or Explore tabs below.")
+            )
+            
+        elif category == "RESEARCH":
+            # Deep dive: Use the heavy reasoning model and pass conversation history
+            
+            # 1. Start with a System Message to establish persona and location safely
+            messages = [
+                {"role": "system", "content": f"You are a travel expert with deep knowledge about history, culture, food, transit, and accommodation. The user is in {req.location}."}
+            ]
+            
+            # 2. Append the recent conversation history
+            for msg in req.history[-4:]:
+                messages.append({"role": msg.role, "content": msg.content})
+                
+            # 3. Safely handle the current user message to prevent the "internal_graph_error"
+            # First, check if the frontend already included this exact message at the end of the history
+            if not req.history or req.history[-1].content != req.message:
+                # If the last message is ALREADY a "user" role (e.g., frontend sent an un-alternating array), merge the text
+                if messages[-1]["role"] == "user":
+                    messages[-1]["content"] += f"\n\nPlease explain deeply: {req.message}"
+                else:
+                    # Otherwise, safely append a new user message
+                    messages.append({"role": "user", "content": f"Please explain deeply: {req.message}"})
+
+            research_resp = await reka_client.chat.completions.create(
+                model="reka-flash-research",
+                messages=messages
+            )
+            
+            return ChatResponse(
+                action_type=category,
+                reply=research_resp.choices[0].message.content
+            )
+            
+        else:
+            # General lightweight chat
+            messages = [
+                {"role": "system", "content": f"You are Dora, a helpful travel companion in {req.location}."},
+                {"role": "user", "content": req.message}
+            ]
+            general_resp = await reka_client.chat.completions.create(
+                model="reka-flash",
+                messages=messages
+            )
+            return ChatResponse(
+                action_type=category,
+                reply=general_resp.choices[0].message.content
+            )
+
+    except Exception as e:
+        import traceback
+        print("CHAT ERROR:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
