@@ -367,23 +367,46 @@ const FoodContent = memo(function FoodContent() {
                   .replace(/\s+/g, "_")
                   .toLowerCase()
                   || "dora_food_guide";
+                // Inject an override stylesheet to strip oklch from the live DOM before html2canvas reads it
+                const overrideStyle = document.createElement("style");
+                overrideStyle.id = "pdf-override";
+                overrideStyle.textContent = `
+                  #pdf-content .glass-card {
+                    background-color: #ffffff !important;
+                    border: 1px solid #e5e7eb !important;
+                    box-shadow: none !important;
+                  }
+                  #pdf-content .food-prose,
+                  #pdf-content .food-prose * {
+                    color: #1f2937 !important;
+                    border-color: #e5e7eb !important;
+                  }
+                  #pdf-content .food-prose code,
+                  #pdf-content .food-prose pre,
+                  #pdf-content .food-prose th,
+                  #pdf-content .food-prose blockquote {
+                    background-color: #f3f4f6 !important;
+                  }
+                `;
+                document.head.appendChild(overrideStyle);
+
                 const opt = {
                   margin: 10,
                   filename: `dora_${safeName}.pdf`,
                   image: { type: "jpeg", quality: 0.98 },
                   html2canvas: {
                     scale: 2,
+                    useCORS: true,
                     onclone: (clonedDoc: Document) => {
-                      // Remove ALL stylesheets so html2canvas never parses oklch from raw CSS
+                      // Remove stylesheets in the clone to prevent parsing errors
                       clonedDoc.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => el.remove());
-
-                      // Inject a single, clean, hex-only stylesheet for the PDF
+                      
                       const safeStyle = clonedDoc.createElement("style");
                       safeStyle.textContent = `
                         * { box-sizing: border-box; margin: 0; padding: 0; }
                         body { background: #ffffff; color: #1f2937; font-family: Georgia, 'Times New Roman', serif; line-height: 1.6; }
                         #pdf-content { background: #ffffff; color: #1f2937; padding: 16px; }
-                        .glass-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; }
+                        .glass-card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; box-shadow: none; }
                         h1, h2, h3, h4, h5, h6 { color: #111827; margin: 1em 0 0.5em; font-family: Georgia, 'Times New Roman', serif; }
                         h1 { font-size: 1.8em; } h2 { font-size: 1.5em; } h3 { font-size: 1.25em; }
                         p { margin: 0.5em 0; }
@@ -398,7 +421,7 @@ const FoodContent = memo(function FoodContent() {
                         th { background: #f3f4f6; font-weight: bold; }
                         code { background: #f3f4f6; padding: 2px 4px; border-radius: 3px; font-size: 0.9em; }
                         pre { background: #f3f4f6; padding: 12px; border-radius: 6px; overflow-x: auto; }
-                        blockquote { border-left: 3px solid #d1d5db; padding-left: 12px; color: #6b7280; margin: 0.5em 0; }
+                        blockquote { border-left: 3px solid #d1d5db; padding-left: 12px; color: #6b7280; margin: 0.5em 0; background: #f3f4f6; }
                         .mb-6 { margin-bottom: 24px; }
                         .food-prose { color: #1f2937; }
                       `;
@@ -407,7 +430,9 @@ const FoodContent = memo(function FoodContent() {
                   },
                   jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
                 };
-                html2pdf().set(opt).from(element).save();
+                html2pdf().set(opt).from(element).save().finally(() => {
+                  document.head.removeChild(overrideStyle);
+                });
               }}
               className="btn-ghost flex items-center gap-2 text-sm"
             >
@@ -424,7 +449,7 @@ const FoodContent = memo(function FoodContent() {
                 />
               </div>
             )}
-            <div className="glass-card p-8" style={{ background: '#fefefe', backdropFilter: 'none' }}>
+            <div className="glass-card p-8" style={{ background: '#ffffff', backdropFilter: 'none', border: '1px solid #e5e7eb', boxShadow: 'none' }}>
               <div className="food-prose">
                 <Suspense fallback={<div className="flex items-center gap-2 text-muted-foreground text-sm"><Loader2 className="size-4 animate-spin" /> Rendering results…</div>}>
                   <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{cleanResponse(result.structured_recommendations)}</ReactMarkdown>

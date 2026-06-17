@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { ScanLine, Route as RouteIcon, ShieldCheck, Search, ArrowRight, Sparkles } from "lucide-react";
+import { ScanLine, Route as RouteIcon, ShieldCheck, Search, ArrowRight, Sparkles, Bot, Send, Loader2, ExternalLink, Camera, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { useUser } from "@/lib/UserContext";
 import { useState, useRef, useEffect, lazy, Suspense } from "react";
 import remarkGfm from "remark-gfm";
