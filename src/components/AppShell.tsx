@@ -2,6 +2,7 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { Globe, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { useUser } from "@/lib/UserContext";
+import { GlobalChat } from "./GlobalChat";
 
 const nav = [
   { to: "/", label: "Explore" },
@@ -74,6 +75,7 @@ export function AppShell({ children, active }: { children: ReactNode; active?: s
           <div className="text-xs">© 2026 Dora · Journey with intent.</div>
         </div>
       </footer>
+      {username && <GlobalChat />}
     </div>
   );
 }
