@@ -286,8 +286,15 @@ async def geocode_address(address: str) -> tuple[float, float]:
             raise HTTPException(status_code=400, detail=f"Google Geocoding Failed: {data.get('status')}")
 
 def generate_free_audio(text: str, lang_code: str = 'en') -> str:
+    import re
+    # Strip common markdown symbols that shouldn't be read aloud
+    clean_text = re.sub(r'[*_~`#]', '', text).strip()
+    
+    if not clean_text:
+        return ""
+        
     try:
-        tts = gTTS(text=text, lang=lang_code, slow=False)
+        tts = gTTS(text=clean_text, lang=lang_code, slow=False)
         fp = io.BytesIO()
         tts.write_to_fp(fp)
         fp.seek(0)
