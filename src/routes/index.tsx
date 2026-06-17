@@ -33,6 +33,8 @@ type Rec = {
   summary?: string;
   url?: string;
   category?: string;
+  destination?: string;
+  photoUrl?: string;
 };
 
 function RecCard({ recs, destination }: { recs: Rec[]; destination: string }) {
@@ -66,10 +68,18 @@ function RecCard({ recs, destination }: { recs: Rec[]; destination: string }) {
           </div>
         </div>
         <div className="relative">
-          <img src={gion} alt={title} className="w-full h-full object-cover" loading="lazy" width={1024} height={1024} />
+          <img
+            src={item.photoUrl || gion}
+            alt={title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            width={1024}
+            height={1024}
+            onError={(e) => { (e.target as HTMLImageElement).src = gion; }}
+          />
           <div className="absolute bottom-4 left-4 right-4 glass-card p-3 text-xs">
             <div className="text-muted-foreground uppercase tracking-wider text-[10px]">Current destination</div>
-            <div className="text-ink font-medium mt-0.5">{destination}</div>
+            <div className="text-ink font-medium mt-0.5">{item.destination ?? destination}</div>
           </div>
         </div>
       </div>
@@ -95,26 +105,31 @@ function RecCard({ recs, destination }: { recs: Rec[]; destination: string }) {
 
 function Home() {
   const { username } = useUser();
-  const destination = "Tokyo";
 
   const [recs, setRecs] = useState<Rec[]>([]);
+  const [destination, setDestination] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  async function fetchRecs(dest: string, userId: string) {
+  async function fetchRecs(userId: string) {
     setLoading(true);
     setSearched(true);
     try {
       const res = await fetch(N8N_PERSONALISED_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, destination: dest }),
+        body: JSON.stringify({ userId }),
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setRecs(data.recommendations ?? []);
+      const recommendations: Rec[] = data.recommendations ?? [];
+      setRecs(recommendations);
+      // n8n decides the destination from the user's own search history —
+      // read it back from whichever rec came back rather than guessing it ourselves
+      setDestination(recommendations[0]?.destination ?? null);
     } catch {
       setRecs([]);
+      setDestination(null);
     } finally {
       setLoading(false);
     }
@@ -122,7 +137,7 @@ function Home() {
 
   useEffect(() => {
     const userId = username ?? "user_001";
-    fetchRecs(destination, userId);
+    fetchRecs(userId);
   }, [username]);
 
   return (
@@ -164,7 +179,9 @@ function Home() {
       <section className="max-w-6xl mx-auto px-6 mt-12 mb-20">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="font-serif text-3xl text-ink">For You · {destination}</h2>
+            <h2 className="font-serif text-3xl text-ink">
+              For You{destination ? ` · ${destination}` : ""}
+            </h2>
             <p className="text-sm text-muted-foreground mt-1">Personalised picks based on your travel history</p>
           </div>
           {loading && <Loader2 className="size-5 animate-spin text-muted-foreground" />}
@@ -209,7 +226,7 @@ function Home() {
 
         {/* Real personalised recs in Gion-card style with prev/next */}
         {recs.length > 0 && (
-          <RecCard recs={recs} destination={destination} />
+          <RecCard recs={recs} destination={destination ?? "your destination"} />
         )}
       </section>
     </AppShell>
