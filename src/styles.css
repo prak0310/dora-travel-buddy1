@@ -67,6 +67,37 @@
   --gradient-glow: radial-gradient(ellipse at top, oklch(0.85 0.06 80 / 0.6), transparent 60%);
 }
 
+.dark {
+  --background: oklch(0.16 0.012 280);
+  --cream: oklch(0.20 0.012 280);
+  --foreground: oklch(0.90 0.01 280);
+  --ink: oklch(0.95 0.01 280);
+  --card: oklch(0.19 0.012 280);
+  --card-foreground: oklch(0.90 0.01 280);
+  --muted: oklch(0.25 0.012 280);
+  --muted-foreground: oklch(0.65 0.01 280);
+  --primary: oklch(0.65 0.11 310);
+  --primary-foreground: oklch(0.98 0.012 85);
+  --accent: oklch(0.70 0.12 30);
+  --accent-foreground: oklch(0.98 0.012 85);
+  --sage: oklch(0.65 0.04 145);
+  --terracotta: oklch(0.65 0.11 40);
+  --border: oklch(0.26 0.015 280);
+  --ring: oklch(0.65 0.11 310);
+  --shadow-soft: 0 1px 2px oklch(0.02 0.02 280 / 0.4), 0 8px 24px oklch(0.02 0.02 280 / 0.3);
+  --shadow-glass: 0 10px 40px oklch(0.02 0.02 280 / 0.5);
+  --gradient-glow: radial-gradient(ellipse at top, oklch(0.3 0.06 310 / 0.4), transparent 60%);
+}
+
+.dark .btn-primary {
+  color: var(--background);
+}
+
+.dark .btn-primary:hover {
+  background: oklch(0.85 0.012 280);
+  color: var(--background);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
