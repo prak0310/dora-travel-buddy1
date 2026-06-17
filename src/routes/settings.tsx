@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useUser } from "../lib/UserContext";
 import { setTheme, getTheme } from "../lib/theme";
-import { Sun, Moon, ShieldAlert, LogOut, RotateCcw } from "lucide-react";
+import { Sun, Moon, ShieldAlert, LogOut, RotateCcw, ArrowLeft } from "lucide-react";
 
 /* ---------------- Route ---------------- */
 
@@ -82,6 +82,17 @@ function SettingsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <div className="mx-auto max-w-3xl space-y-6 p-6">
+
+        {/* Back Button */}
+        <div>
+          <button
+            onClick={() => navigate({ to: "/" })}
+            className="group inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-ink transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="size-4 transition-transform group-hover:-translate-x-1" />
+            Back to Home
+          </button>
+        </div>
 
         {/* Header */}
         <div className="space-y-1">
