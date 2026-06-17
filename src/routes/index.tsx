@@ -270,16 +270,23 @@ function Home() {
       <ScrollVideo />
 
       <div className="relative bg-cream z-10 pt-10">
-        <section className="max-w-6xl mx-auto px-6 pt-20 pb-12 text-center">
-          <span className="pill"><Sparkles className="size-3" /> Travel light. Wander braver.</span>
-          <h1 className="font-serif text-6xl md:text-7xl text-ink mt-6 leading-[1.05]">
-          Where to next, <em className="italic">{username || "Traveller"}?</em>
-        </h1>
-        <p className="mt-5 text-muted-foreground max-w-xl mx-auto">
-          One quiet companion for the messy parts of travel — menus, trains, customs, and the gut feeling that you might be missing something.
-        </p>
+        <section className="relative max-w-6xl mx-auto px-6 pt-20 pb-12 text-center">
+          <img 
+            src="/dora.jpeg" 
+            alt="Dora" 
+            className="absolute -right-8 lg:-right-24 top-48 lg:top-56 w-40 md:w-48 lg:w-64 hidden md:block pointer-events-none z-20"
+            style={{ transform: 'rotate(5deg)' }}
+          />
 
-        {/* Chat Interface */}
+          <span className="pill relative z-10"><Sparkles className="size-3" /> Travel light. Wander braver.</span>
+          <h1 className="relative z-10 font-serif text-6xl md:text-7xl text-ink mt-6 leading-[1.05]">
+            Where to next, <em className="italic">{username || "Traveller"}?</em>
+          </h1>
+          <p className="relative z-10 mt-5 text-muted-foreground max-w-xl mx-auto">
+            One quiet companion for the messy parts of travel — menus, trains, customs, and the gut feeling that you might be missing something.
+          </p>
+
+          {/* Chat Interface */}
         <div
         className={`relative glass-card max-w-2xl mx-auto mt-10 overflow-hidden transition-all duration-300 ${
         chatOpen
