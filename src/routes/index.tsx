@@ -5,6 +5,7 @@ import { useUser } from "@/lib/UserContext";
 import { useState, useRef, useEffect, lazy, Suspense } from "react";
 import remarkGfm from "remark-gfm";
 import gion from "@/assets/gion.jpg";
+import { ScrollVideo } from "@/components/ScrollVideo";
 
 const ReactMarkdown = lazy(() => import("react-markdown"));
 
@@ -265,9 +266,12 @@ function Home() {
 
   return (
     <AppShell>
-      <section className="max-w-6xl mx-auto px-6 pt-20 pb-12 text-center">
-        <span className="pill"><Sparkles className="size-3" /> Travel light. Wander braver.</span>
-        <h1 className="font-serif text-6xl md:text-7xl text-ink mt-6 leading-[1.05]">
+      <ScrollVideo />
+
+      <div className="relative bg-cream z-10 pt-10">
+        <section className="max-w-6xl mx-auto px-6 pt-20 pb-12 text-center">
+          <span className="pill"><Sparkles className="size-3" /> Travel light. Wander braver.</span>
+          <h1 className="font-serif text-6xl md:text-7xl text-ink mt-6 leading-[1.05]">
           Where to next, <em className="italic">{username || "Traveller"}?</em>
         </h1>
         <p className="mt-5 text-muted-foreground max-w-xl mx-auto">
@@ -487,6 +491,7 @@ function Home() {
           <RecCard recs={recs} destination={destination ?? "your destination"} />
         )}
       </section>
+      </div>
     </AppShell>
   );
 }
