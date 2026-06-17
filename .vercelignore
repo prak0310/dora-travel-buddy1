@@ -1,0 +1,9 @@
+dora_foodCultural_backend.py
+requirements.txt
+docker-compose.yml
+Dockerfile
+workflows/
+*.py
+*.ipynb
+package copy.json
+eslint.config copy.js

@@ -51,6 +51,24 @@ npm run dev
 - **FastAPI Backend (Swagger Docs)**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **n8n Workflow Dashboard**: [http://localhost:5678](http://localhost:5678)
 
+## 🚀 Deploy Frontend to Vercel
+
+This repository is set up as a Vite frontend at the root, so Vercel can deploy only the client app with the CLI.
+
+```bash
+npm run build
+npx vercel
+npx vercel --prod
+```
+
+When Vercel asks for settings, use:
+- Framework preset: Vite
+- Build command: npm run build
+- Output directory: dist
+- Root directory: .
+
+The backend files are excluded from the deployment upload by .vercelignore.
+
 ---
 
 ## 🧭 How to Use Dora
