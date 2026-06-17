@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { ScanLine, Route as RouteIcon, ShieldCheck, Search, ArrowRight, Sparkles, Bot, Send, Loader2, ExternalLink, Camera, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { ScanLine, Route as RouteIcon, ShieldCheck, Search, ArrowRight, Sparkles, Bot, Send, Loader2, ExternalLink, Camera, ChevronLeft, ChevronRight, Star, Mic } from "lucide-react";
 import { useUser } from "@/lib/UserContext";
 import { useState, useRef, useEffect, lazy, Suspense } from "react";
 import remarkGfm from "remark-gfm";
@@ -187,12 +187,93 @@ function Home() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, chatLoading]);
+
+  const handleToggleRecording = async () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          stream.getTracks().forEach(track => track.stop());
+          
+          setChatOpen(true);
+          setChatLoading(true);
+
+          try {
+            const formData = new FormData();
+            formData.append('audio_file', audioBlob, 'recording.webm');
+            formData.append('location', destination || 'Unknown');
+
+            const res = await fetch("http://localhost:8000/api/v1/voice-chat", {
+              method: "POST",
+              body: formData,
+            });
+
+            if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+
+            const data = await res.json();
+            
+            // Append user transcript
+            const userMsg: ChatMsg = { role: "user", content: data.user_transcript || "🎤 (Voice Message)" };
+            setMessages(prev => [...prev, userMsg]);
+            
+            // Append assistant response
+            const assistantMsg: ChatMsg = {
+              role: "assistant",
+              content: cleanReply(data.dora_text_response),
+              actionType: "VOICE",
+            };
+            setMessages(prev => [...prev, assistantMsg]);
+
+            // Play audio if available
+            if (data.dora_audio_base64 && audioPlayerRef.current) {
+              const audioSrc = `data:audio/wav;base64,${data.dora_audio_base64}`;
+              audioPlayerRef.current.src = audioSrc;
+              audioPlayerRef.current.play();
+            }
+          } catch (err: any) {
+            setMessages(prev => [
+              ...prev,
+              { role: "assistant", content: `⚠️ Voice chat failed: ${err.message}`, actionType: "ERROR" }
+            ]);
+          } finally {
+            setChatLoading(false);
+            inputRef.current?.focus();
+          }
+        };
+
+        mediaRecorder.start();
+        setIsRecording(true);
+      } catch (err) {
+        console.error("Error accessing microphone:", err);
+        alert("Microphone access is required for voice chat.");
+      }
+    }
+  };
 
   const handleSend = async () => {
     const text = input.trim();
@@ -425,6 +506,13 @@ function Home() {
               disabled={chatLoading}
             />
             <button
+              onClick={handleToggleRecording}
+              className={`p-2 mr-2 rounded-full transition-all flex items-center justify-center ${isRecording ? "bg-red-100 text-red-500 animate-pulse" : "bg-cream text-ink hover:bg-border/50"}`}
+              title={isRecording ? "Stop Recording" : "Start Voice Chat"}
+            >
+              <Mic className="size-4" />
+            </button>
+            <button
               onClick={handleSend}
               disabled={chatLoading || !input.trim()}
               className="btn-primary disabled:opacity-40 flex items-center gap-2"
@@ -432,6 +520,7 @@ function Home() {
               {chatLoading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               Send
             </button>
+            <audio ref={audioPlayerRef} className="hidden" />
           </div>
         </div>
       </section>
