@@ -40,15 +40,24 @@ export function AppShell({ children, active }: { children: ReactNode; active?: s
           <div className="flex items-center gap-3">
             <button className="btn-ghost"><Globe className="size-4" /> EN</button>
             {username && (
-              <span className="text-sm text-muted-foreground hidden sm:inline">{username}</span>
+              <>
+                <span className="text-sm text-muted-foreground hidden sm:inline">{username}</span>
+                <div
+                  className="size-9 rounded-full bg-gradient-to-br from-[#c4956a] to-[#a0522d] flex items-center justify-center text-white text-sm font-medium"
+                  title={`Logged in as ${username}`}
+                >
+                  {initial}
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="btn-ghost text-[#a0522d] border-[#a0522d]/20 hover:bg-[#a0522d]/5 dark:text-[#c4956a] dark:border-[#c4956a]/20 dark:hover:bg-[#c4956a]/5 transition-colors duration-200 cursor-pointer flex items-center gap-2"
+                  title="Log out"
+                >
+                  <LogOut className="size-4" />
+                  <span className="hidden sm:inline">Logout</span>
+                </button>
+              </>
             )}
-            <div
-              className="size-9 rounded-full bg-gradient-to-br from-[#c4956a] to-[#a0522d] flex items-center justify-center text-white text-sm font-medium cursor-pointer"
-              title={username ? `Logged in as ${username} — click to log out` : ""}
-              onClick={handleLogout}
-            >
-              {initial}
-            </div>
           </div>
         </div>
       </header>
