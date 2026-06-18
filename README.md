@@ -12,6 +12,7 @@ Dora AI is an interactive, multi-agent travel companion designed to help you wit
 ## 🛠️ Setup Instructions
 
 We have fully containerized the application so you **do not need to download or install any packages manually**. The Docker setup will automatically install everything listed in our `requirements.txt` and `package.json`.
+Run the file locally if deployed version does not work (as below).
 
 ### Prerequisites
 1. **Docker Desktop** installed and running on your machine.
