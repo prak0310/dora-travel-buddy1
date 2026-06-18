@@ -19,7 +19,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 
 # --- AI & Media Processing ---
-import whisper
+# import whisper # COMMENTED OUT FOR PERFORMANCE
 from openai import AsyncOpenAI
 from gtts import gTTS
 from google.cloud import vision
@@ -101,6 +101,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+async def root():
+    return {"message": "Dora Backend is Live and Running!"}
 
 
 # ==========================================
@@ -478,11 +482,11 @@ async def process_voice_chat(
     location: str = "Unknown"
 ):
 
-    global whisper_model
+    # global whisper_model
 
-    if whisper_model is None:
-        print("Lazy loading Whisper model on first request...")
-        whisper_model = whisper.load_model("base")
+    # if whisper_model is None:
+    #     print("Lazy loading Whisper model on first request...")
+    #     whisper_model = whisper.load_model("base")
 
     temp_path = None
 
@@ -490,23 +494,21 @@ async def process_voice_chat(
 
         audio_bytes = await audio_file.read()
 
-        with tempfile.NamedTemporaryFile(
-            delete=False,
-            suffix=".wav"
-        ) as tmp:
+        # with tempfile.NamedTemporaryFile(
+        #     delete=False,
+        #     suffix=".wav"
+        # ) as tmp:
+        # 
+        #     tmp.write(audio_bytes)
+        #     temp_path = tmp.name
 
-            tmp.write(audio_bytes)
-            temp_path = tmp.name
+        # result = whisper_model.transcribe(
+        #     temp_path,
+        #     fp16=False
+        # )
 
-        result = whisper_model.transcribe(
-            temp_path,
-            fp16=False
-        )
-
-        user_text = (
-            result["text"]
-            .strip()
-        )
+        # user_text = result["text"].strip()
+        user_text = "Hello Dora! (Voice chat is currently disabled for hackathon performance)"
 
         print("TRANSCRIPT:", user_text)
 
