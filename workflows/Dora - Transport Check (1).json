@@ -24,7 +24,7 @@
         "url": "https://api.tavily.com/search",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"api_key\": \"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\",\n  \"query\": \"={{\n$('Webhook').first().json.body.query +\n' in ' +\n$('Webhook').first().json.body.destination +\n' public transport guide tips how to get around trains buses tourist'\n}}\",\n  \"search_depth\": \"advanced\",\n  \"max_results\": 5,\n  \"include_answer\": true,\n  \"include_raw_content\": false\n}",
+        "jsonBody": "={\n  \"api_key\": \"<insert tavily api key>\",\n  \"query\": \"={{\n$('Webhook').first().json.body.query +\n' in ' +\n$('Webhook').first().json.body.destination +\n' public transport guide tips how to get around trains buses tourist'\n}}\",\n  \"search_depth\": \"advanced\",\n  \"max_results\": 5,\n  \"include_answer\": true,\n  \"include_raw_content\": false\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -58,7 +58,7 @@
           "parameters": [
             {
               "name": "X-Goog-Api-Key",
-              "value": "AIzaSyBNwxcnzPuVNCad7u4jlvhQ2jjGYJvKa6s"
+              "value": "<insert google api key>"
             },
             {
               "name": "X-Goog-FieldMask",
@@ -95,7 +95,7 @@
           "parameters": [
             {
               "name": "X-Api-Key",
-              "value": "REMOVED_REKA_KEY"
+              "value": "<insert reka api key>"
             },
             {
               "name": "Content-Type",
@@ -231,11 +231,11 @@
           "parameters": [
             {
               "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+              "value": "<insert supabase service role key>"
             },
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+              "value": "Bearer <insert supabase service role key>"
             },
             {
               "name": "Content-Type",
@@ -264,11 +264,11 @@
           "parameters": [
             {
               "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+              "value": "<insert supabase service role key>"
             },
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRobmphc3V6dnNsbm1qeGRxdGh3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU2NDgyOCwiZXhwIjoyMDk2MTQwODI4fQ.4vTp-8Vl_nELrnbthGbeqcja5QKTKjyoqiYmoz3TlwM"
+              "value": "Bearer <insert supabase service role key>"
             },
             {
               "name": "Content-Type",
@@ -303,7 +303,7 @@
           "parameters": [
             {
               "name": "X-Api-Key",
-              "value": "REMOVED_REKA_KEY"
+              "value": "<insert reka api key>"
             },
             {
               "name": "Content-Type",
@@ -464,7 +464,7 @@
   },
   "versionId": "0bf1c234-7c74-4987-ba27-7f87bfafaa50",
   "meta": {
-    "instanceId": "e7170ac7bead7b712622aab96ab1bad401cb903eb830a72d0e681b719d73977f"
+    "instanceId": "<insert reka api key>"
   },
   "nodeGroups": [],
   "id": "8zZKM57Wm2rbRD1E",
