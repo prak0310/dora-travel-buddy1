@@ -23,6 +23,7 @@ import whisper
 from openai import AsyncOpenAI
 from gtts import gTTS
 from google.cloud import vision
+from google.oauth2 import service_account
 
 '''Testing payloads:
 1. Explore Tab (Text Search):
@@ -306,12 +307,17 @@ def generate_free_audio(text: str, lang_code: str = 'en') -> str:
 def get_google_landmark_sync(clean_b64: str) -> str:
     """Agent 1: Synchronous Google Vision extraction via Service Account key file."""
     try:
-        if not os.path.exists(GOOGLE_KEY_FILE_PATH):
-            print(f"Warning: Key file not found at {GOOGLE_KEY_FILE_PATH}. Skipping Google Vision.")
+        google_creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+        if google_creds_json:
+            creds_dict = json.loads(google_creds_json)
+            credentials = service_account.Credentials.from_service_account_info(creds_dict)
+            client = vision.ImageAnnotatorClient(credentials=credentials)
+        elif os.path.exists(GOOGLE_KEY_FILE_PATH):
+            # Explicitly loading credentials directly from your local file
+            client = vision.ImageAnnotatorClient.from_service_account_file(GOOGLE_KEY_FILE_PATH)
+        else:
+            print("Warning: Google Credentials not found in environment or local path. Skipping Google Vision.")
             return "Unknown Landmark"
-
-        # Explicitly loading credentials directly from your local file
-        client = vision.ImageAnnotatorClient.from_service_account_file(GOOGLE_KEY_FILE_PATH)
         image = vision.Image(content=base64.b64decode(clean_b64))
         
         response = client.landmark_detection(image=image)

@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: dora-python-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8000
+    # Remember to add GOOGLE_CREDENTIALS_JSON, GOOGLE_PLACES_API_KEY, REKA_API_KEY as environment variables in the Render Dashboard
+
+  - type: web
+    name: dora-n8n
+    env: docker
+    image: docker.n8n.io/n8nio/n8n:latest
+    region: oregon
+    plan: free
+    envVars:
+      - key: N8N_PORT
+        value: 5678
+      - key: N8N_HOST
+        value: dora-n8n.onrender.com # Auto-assigned by Render
+      - key: WEBHOOK_URL
+        value: https://dora-n8n.onrender.com/
+    disk:
+      name: n8n-data
+      mountPath: /home/node/.n8n
+      sizeGB: 1
