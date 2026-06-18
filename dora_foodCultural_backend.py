@@ -82,9 +82,8 @@ whisper_model = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global whisper_model
-    print("Loading Whisper...")
-    whisper_model = whisper.load_model("base")
-    print("Whisper model loaded")
+    print("FastAPI starting up...")
+    # We load whisper lazily during the first request to prevent Fly.io from timing out
     yield # This tells FastAPI to start accepting requests now
     print("Shutting down...")
 
@@ -482,10 +481,8 @@ async def process_voice_chat(
     global whisper_model
 
     if whisper_model is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Whisper still loading"
-        )
+        print("Lazy loading Whisper model on first request...")
+        whisper_model = whisper.load_model("base")
 
     temp_path = None
 
