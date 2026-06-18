@@ -43,7 +43,7 @@ function SignIn() {
     >
       <div className="absolute inset-0 bg-[rgba(250,245,238,0.08)]" />
 
-      {/* Desktop Mascot: shown only on large screens (width >= 1525px && height >= 1330px) */}
+      {/* Desktop Mascot: shown on desktop viewports (width >= 640px) */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute right-[-12px] top-12 h-60 w-60 opacity-90 lg:right-38 lg:top-20 lg:h-[21rem] lg:w-[21rem] login-mascot-desktop"
@@ -62,7 +62,7 @@ function SignIn() {
 
       <div className="relative min-h-screen px-6 py-8 sm:px-10 lg:px-14 flex flex-col justify-center sm:justify-start">
         <div className="max-w-[380px] w-full mx-auto sm:mx-0 animate-[fadeSlideIn_0.6s_ease] sm:translate-x-4 sm:translate-y-12 lg:translate-x-6 lg:translate-y-16">
-          {/* Mobile Mascot: shown only on smaller screens (width < 1525px || height < 1330px) */}
+          {/* Mobile Mascot: shown on mobile viewports (width < 640px) */}
           <div className="login-mascot-mobile mb-6 flex justify-center">
             <img
               src={mascot}

@@ -445,10 +445,13 @@
     display: flex;
   }
 
-  @media (min-width: 1525px) and (min-height: 1330px) {
+  @media (min-width: 1450px) {
     .login-bg-desktop {
       background-image: var(--login-bg-img) !important;
     }
+  }
+
+  @media (min-width: 640px) {
     .login-mascot-desktop {
       display: block;
     }
