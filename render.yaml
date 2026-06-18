@@ -24,7 +24,3 @@ services:
         value: dora-n8n.onrender.com # Auto-assigned by Render
       - key: WEBHOOK_URL
         value: https://dora-n8n.onrender.com/
-    disk:
-      name: n8n-data
-      mountPath: /home/node/.n8n
-      sizeGB: 1
