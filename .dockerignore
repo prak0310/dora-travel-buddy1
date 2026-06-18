@@ -1,0 +1,11 @@
+# flyctl launch added from .gitignore
+**/node_modules
+**/.DS_store 
+**/.env
+**/.env.local
+
+# Ignore Google Cloud Service Account private keys
+**/*.json
+!**/package.json
+!**/components.json
+fly.toml

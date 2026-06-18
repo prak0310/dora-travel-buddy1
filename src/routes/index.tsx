@@ -255,7 +255,8 @@ function Home() {
             formData.append('audio_file', audioBlob, 'recording.webm');
             formData.append('location', destination || 'Unknown');
 
-            const res = await fetch("http://localhost:8000/api/v1/voice-chat", {
+            const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+            const res = await fetch(`${API_BASE_URL}/api/v1/voice-chat`, {
               method: "POST",
               body: formData,
             });
@@ -317,7 +318,8 @@ function Home() {
         .slice(-6)
         .map((m) => ({ role: m.role, content: m.content }));
 
-      const res = await fetch("http://localhost:8000/api/v1/chat", {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_BASE_URL}/api/v1/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

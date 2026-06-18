@@ -136,7 +136,8 @@ const FoodContent = memo(function FoodContent() {
       };
       if (address) payload.address = address;
 
-      const res = await fetch("http://localhost:8000/api/v1/explore", {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_BASE_URL}/api/v1/explore`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -187,7 +188,8 @@ const FoodContent = memo(function FoodContent() {
       
       formData.append("preferences", JSON.stringify(preferences));
 
-      const res = await fetch("http://localhost:8000/api/v1/camera-intel", {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_BASE_URL}/api/v1/camera-intel`, {
         method: "POST",
         body: formData
       });

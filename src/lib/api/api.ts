@@ -1,5 +1,6 @@
 export async function updateSettings(data: any) {
-  const res = await fetch("http://localhost:8000/settings", {
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  const res = await fetch(`${API_BASE_URL}/settings`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -12,7 +13,8 @@ export async function updateSettings(data: any) {
 }
 
 export async function getSettings() {
-  const res = await fetch("http://localhost:8000/settings");
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  const res = await fetch(`${API_BASE_URL}/settings`);
 
   if (!res.ok) throw new Error("Failed to fetch settings");
   return res.json();
