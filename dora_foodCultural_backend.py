@@ -70,7 +70,23 @@ if not REKA_API_KEY:
         "REKA_API_KEY not found. Check that your .env exists and contains REKA_API_KEY."
     )
 
-GOOGLE_KEY_FILE_PATH = "/Users/vlsurya/Desktop/summerbuild/project-9488ae86-552a-416e-a85-06c497305993.json"
+# Support loading Google credentials dynamically (especially for Render deployment)
+google_creds_json = os.getenv("GOOGLE_VISION_CREDENTIALS_JSON")
+if google_creds_json:
+    try:
+        # Write credentials JSON string to a temporary file
+        temp_creds = tempfile.NamedTemporaryFile(delete=False, suffix=".json", mode="w")
+        temp_creds.write(google_creds_json.strip())
+        temp_creds.close()
+        GOOGLE_KEY_FILE_PATH = temp_creds.name
+        print("Loaded Google Vision credentials from GOOGLE_VISION_CREDENTIALS_JSON env var.")
+    except Exception as e:
+        print(f"Error parsing GOOGLE_VISION_CREDENTIALS_JSON: {e}")
+        GOOGLE_KEY_FILE_PATH = ""
+else:
+    # Fallback to local file paths from env or hardcoded local path
+    GOOGLE_KEY_FILE_PATH = os.getenv("GOOGLE_VISION_API_KEY", "/Users/vlsurya/Desktop/summerbuild/project-9488ae86-552a-416e-a85-06c497305993.json")
+
 
 # ==========================================
 # APP and CORS and LIFESPAN

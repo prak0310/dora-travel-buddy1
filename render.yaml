@@ -1,0 +1,31 @@
+services:
+  # FastAPI Python Backend (Docker Web Service)
+  - type: web
+    name: dora-backend
+    env: docker
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    plan: free # Note: Whisper (base) requires downloading models, which may hit the 512MB RAM limit on the free tier. Upgrading to the starter plan is recommended if you hit OOM errors.
+    envVars:
+      - key: REKA_API_KEY
+        sync: false
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
+      - key: GOOGLE_VISION_CREDENTIALS_JSON
+        sync: false
+
+  # React Vite Frontend (Static Site)
+  - type: static
+    name: dora-frontend
+    env: static
+    buildCommand: npm run build
+    publishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_BACKEND_URL
+        sync: false # Set this to your dora-backend public URL (e.g., https://dora-backend.onrender.com)
+      - key: VITE_N8N_URL
+        sync: false # Set this to your n8n public URL if you're deploying n8n, or keep as is
