@@ -223,8 +223,12 @@ function FactCheck() {
         <div className="mt-8 grid md:grid-cols-2 gap-5">
           {recommendations.map((item, index) => {
             const reviewCount = item.reviewCount ?? item.review_count;
-            const watchOut = item.watchOut ?? item.watch_out ?? [];
-            const goodFor = item.goodFor ?? item.good_for ?? [];
+            const rawWatchOut = item.watchOut ?? item.watch_out ?? [];
+            const watchOut = Array.isArray(rawWatchOut) ? rawWatchOut : (rawWatchOut ? [rawWatchOut] : []);
+            const rawGoodFor = item.goodFor ?? item.good_for ?? [];
+            const goodFor = Array.isArray(rawGoodFor) ? rawGoodFor : (rawGoodFor ? [rawGoodFor] : []);
+            const tips = Array.isArray(item.tips) ? item.tips : (item.tips ? [item.tips] : []);
+            const amenities = Array.isArray(item.amenities) ? item.amenities : (item.amenities ? [item.amenities] : []);
             const priceRange = item.priceRange ?? item.price_range;
             const bestTime = item.bestTime ?? item.best_time;
             const locationQuality =
@@ -315,11 +319,11 @@ function FactCheck() {
                   </div>
                 )}
 
-                {item.amenities && item.amenities.length > 0 && (
+                {amenities.length > 0 && (
                   <div className="mt-4">
                     <p className="font-medium text-ink text-sm">Amenities</p>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {item.amenities.map((tag, i) => (
+                      {amenities.map((tag, i) => (
                         <span key={i} className="pill">
                           {tag}
                         </span>
@@ -328,11 +332,11 @@ function FactCheck() {
                   </div>
                 )}
 
-                {item.tips && item.tips.length > 0 && (
+                {tips.length > 0 && (
                   <div className="mt-4">
                     <p className="font-medium text-ink text-sm">Tips</p>
                     <ul className="list-disc pl-5 text-sm text-muted-foreground mt-1 space-y-1">
-                      {item.tips.map((tip, i) => (
+                      {tips.map((tip, i) => (
                         <li key={i}>{tip}</li>
                       ))}
                     </ul>
