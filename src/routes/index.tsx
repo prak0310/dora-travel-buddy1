@@ -41,7 +41,8 @@ const features = [
   { to: "/cultural", icon: Camera, title: "Cultural Explorer", desc: "Point your camera at anything around you — a landmark, sign, banner, or poster — and get the cultural backstory, local etiquette, useful phrases, and how to say them out loud.", cta: "Open camera" },
 ];
 
-const N8N_PERSONALISED_URL = "http://localhost:5678/webhook/dora-personalised";
+const N8N_BASE_URL = import.meta.env.VITE_N8N_URL || "http://localhost:5678";
+const N8N_PERSONALISED_URL = `${N8N_BASE_URL}/webhook/dora-personalised`;
 
 type Rec = {
   title?: string;

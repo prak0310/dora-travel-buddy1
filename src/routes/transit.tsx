@@ -26,7 +26,8 @@ type DirectionsResult = {
   };
 };
 
-const N8N_DIRECTIONS_URL = "http://localhost:5678/webhook/dora-directions";
+const N8N_BASE_URL = import.meta.env.VITE_N8N_URL || "http://localhost:5678";
+const N8N_DIRECTIONS_URL = `${N8N_BASE_URL}/webhook/dora-directions`;
 const MAPS_API_KEY = "REMOVED_MAPS_KEY";
 
 function loadGoogleMaps(): Promise<void> {

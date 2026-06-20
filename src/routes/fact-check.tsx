@@ -68,11 +68,13 @@ type Recommendation = {
   accessibility?: string;
 };
 
+const N8N_BASE_URL = import.meta.env.VITE_N8N_URL || "http://localhost:5678";
+
 const endpointMap: Record<Category, string> = {
-  food: "http://localhost:5678/webhook/dora-social-check",
-  transport: "http://localhost:5678/webhook/dora-transport-check",
-  activity: "http://localhost:5678/webhook/dora-activity-check",
-  accommodation: "http://localhost:5678/webhook/dora-accommodation-check",
+  food: `${N8N_BASE_URL}/webhook/dora-social-check`,
+  transport: `${N8N_BASE_URL}/webhook/dora-transport-check`,
+  activity: `${N8N_BASE_URL}/webhook/dora-activity-check`,
+  accommodation: `${N8N_BASE_URL}/webhook/dora-accommodation-check`,
 };
 
 function FactCheck() {

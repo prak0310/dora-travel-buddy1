@@ -108,7 +108,8 @@ function CulturalContent() {
       const base64 = await convertToBase64(file);
 
       
-      const res = await fetch("http://127.0.0.1:8000/api/v1/analyze-scene", {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_BASE_URL}/api/v1/analyze-scene`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
